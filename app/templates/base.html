@@ -8,8 +8,24 @@
       {% endif %}
     </head>
     <body>
-        <div>Microblog: <a href="/index">Home</a></div>
+        <div>
+          Microblog: 
+          <a href="{{ url_for('index')}}">Home</a>
+          <a href="{{ url_for('login')}}">Login </a>
+        </div>
         <hr>
+        {% with messages = get_flashed_messages() %}
+        <!-- using "with" construct to assign the result of calling get_flashed_messages() to a messages variable-->
+        {% if messages %}
+        <!-- checks if messages has content-->
+        <ul>
+          {% for message in messages %}
+          <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+        <!-- this block is used to display flashed messages to the user -->
         {% block content %}{% endblock %}
         <!-- the block named content will be replaced by child templates -->
     </body>

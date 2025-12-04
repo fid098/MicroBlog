@@ -1,5 +1,10 @@
 from app import app
 from flask import render_template
+from app.forms import LoginForm
+#i import the LoginForm class from the forms module in the app package
+from flask import flash, redirect, url_for
+#these are imported to handle flashing messages and redirecting users to different routes
+
 
 #this is a view function(handlers for the application routes)
 @app.route('/')  #this is a decorator that modifies the function that follows it 
@@ -21,4 +26,15 @@ def index():
 #additional arguments are key-value pairs that are passed to the template engine
 #these key-value pairs can be used within the template to dynamically generate content
 
+@app.route('/login', methods=['GET', 'POST'])
+#this binds the URL /login to the login() function and allows both GET and POST methods
+def login():
+    form = LoginForm()
+    #this creates an instance of the LoginForm class defined in app/forms.py
+    if form.validate_on_submit():
+        #this checks if the form has been submitted and if the data is valid according to the validators defined in the form class
+        flash('Login requested for user {}, remember_me={}'.format(
+            form.username.data, form.remember_me.data))
+        return redirect(url_for('index'))
+    return render_template('login.html', title='Sign In', form=form)
 
