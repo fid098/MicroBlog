@@ -1,20 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    {% if title %}
-    <title>{{ title }} - MicroBlog</title>
-    {% else %}
-    <title>Welcome to MicroBlog</title>
-    {% endif %} 
-    <!-- now if the function forgets to pass a value for title, it shows a default title-->
-    </head>
-    <body>
-        <h1>Hello, {{ user.username }}!</h1>
-        {% for post in posts %}
-        <div><p>{{ post.author.username  }} says: <b>{{ post.body  }}</b></p></div>
-        {% endfor %}
-        <!-- the above for loop iterates over posts and displays each post's author and body -->
-    </body>
-</html>
+{% extends "base.html" %}
 
-<!-- This is just a comment. Placeholders like {{ user.username }} are replaced when rendered. -->
+{% block content %}
+    <h1>Hi, {{ user.username }}!</h1>
+    {% for post in posts %}
+    <div><p>{{ post.author.username }} says: <b>{{ post.body }}</b></p></div>
+    {% endfor %}
+{% endblock %}
+
