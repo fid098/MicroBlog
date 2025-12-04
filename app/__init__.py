@@ -8,4 +8,7 @@ app = Flask(__name__)
 #importing routes at the bottom avoids circular imports as routes also needs to import the app instance
 from app import routes 
 
+#instead of having to set the FLASK_APP environment variable, we can register it automatically using python-dotenv
+#by creating a file named .flaskenv in the project root directory with the content FLASK_APP=microblog.py
+#the python-dotenv package will read this file and set the environment variable automatically when the application starts
 
