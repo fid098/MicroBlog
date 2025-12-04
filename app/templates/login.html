@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+<!-- to keep the nav bar at the top -->
+
+{% block content %}
+    <h1>Sign In</h1>
+    <form action="" method="post" novalidate>
+        <!-- "form" used as a container for the web form -->
+        <!-- when action is set to an empty string, the form is submitted to the URL that is currently in the address bar  -->
+        <!-- method attribute is the HTTP request method that should be used when submitting the form to the server. -->
+        <!-- novalidate tells the web browser to not apply validation to the fields in this form -->
+        {{ form.hidden_tag()}}
+        <!-- hidden_tag() generates a hidden field containing a CSRF token to protect the form from attacks -->
+        <p>
+            {{ form.username.label }}<br>
+            {{ form.username(size=32) }}<br>
+            {% for error in form.username.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            <!-- these render the error messages added by the validators in red color-->
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.password.label }}<br>
+            {{ form.password(size=32) }}<br>
+            {% for error in form.password.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endblock %}
+
