@@ -5,13 +5,16 @@ import sqlalchemy as sa
 import sqlalchemy.orm as so
 #importing the database instance created in app/__init__.py
 #so means sqlalchemy.orm
-from app import db
+from app import db, login
 #db is the SQLAlchemy instance initialized with the Flask app
-
+from werkzeug.security import generate_password_hash, check_password_hash
+#we will use these functions to hash passwords before storing them in the database
+from flask_login import UserMixin
+#this mixin provides default implementations for the methods that Flask-Login expects user objects to have
 
 
 #this defines the initial database structure/schema for the application
-class User(db.Model):
+class User(UserMixin, db.Model):
     #this represents users stored in the database, the class inherits from db.Model which is the base class for all models defined using Flask-SQLAlchemy
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     #this is the primary key column, an integer that uniquely identifies each user
@@ -27,6 +30,13 @@ class User(db.Model):
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
     #this sets up a one-to-many relationship to the Post model
     #it allows access to all posts authored by this user via user.posts
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    #this method hashes the given password
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    #this method checks if the given password matches the stored hashed password
+
 
     def __repr__(self):
         return '<user {}>'.format(self.username)
@@ -51,3 +61,10 @@ class Post(db.Model):
     def __repr__(self):
         return '<Post {}>'.format(self.body)
     
+
+@login.user_loader
+def load_user(id):
+    return db.session.get(User, int(id))
+#this function is used by Flask-Login to load a user from the database given their user ID
+#it queries the User model using the provided ID and returns the corresponding User object
+

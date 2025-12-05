@@ -4,6 +4,7 @@
       {% if title %}
       <title>{{ title }} - Microblog</title>
       {% else %}
+      <!--if there is not a title rendered it uses "welcome to microblog"-->
       <title>Welcome to Microblog</title>
       {% endif %}
     </head>
@@ -11,7 +12,12 @@
         <div>
           Microblog: 
           <a href="{{ url_for('index')}}">Home</a>
+          {% if current_user.is_anonymous %}
+          <!--checks if the current user is not logged in-->
           <a href="{{ url_for('login')}}">Login </a>
+          {% else %}
+          <a href="{{ url_for('logout')}}">Logout </a>
+          {% endif %}
         </div>
         <hr>
         {% with messages = get_flashed_messages() %}

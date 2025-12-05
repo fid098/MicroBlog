@@ -2,8 +2,12 @@ from flask_wtf import FlaskForm
 #this class is imported from the flask_wtf package to create web forms in flask applications
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 #these classes are imported from the wtforms package to create form fields
-from wtforms.validators import DataRequired 
+from wtforms.validators import DataRequired, Email, ValidationError, EqualTo
+#these are imported to validate form input data, such as ensuring required fields are filled, email format is correct, etc.
 #this validator ensures that the field is not submitted empty
+from app import db
+from app.models import User
+import sqlalchemy as sa
 
 class LoginForm(FlaskForm):
     #this class defines a login form that inherits from FlaskForm
@@ -11,4 +15,29 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
+
+class RegistrationForm(FlaskForm):
+    #this class defines a registration form that inherits from FlaskForm
+    username = StringField('Username', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    password2 = PasswordField('Repeat Password', validators=[DataRequired(), EqualTo('password')])
+    #this field requires the user to enter the same password as in the password field
+    submit = SubmitField('Register')
+
+    def validate_username(self, username):
+        user = db.session.scalar(sa.select(User).where(
+            User.username == username.data))
+        #this method checks if the username already exists in the database
+        if user is not None:
+            raise ValidationError('Please use a different username.')
+        #if the username is already taken, a ValidationError is raised
+
+    def validate_email(self, email):
+        user = db.session.scalar(sa.select(User).where(
+            User.email == email.data))
+        #this method checks if the email already exists in the database
+        if user is not None:
+            raise ValidationError('Please use a different email address.')
+        #if the email is already registered, a ValidationError is raised
 
