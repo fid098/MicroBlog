@@ -11,6 +11,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 #we will use these functions to hash passwords before storing them in the database
 from flask_login import UserMixin
 #this mixin provides default implementations for the methods that Flask-Login expects user objects to have
+from hashlib import md5
+#importing hashlib to generate Gravatar URLs for user avatars
 
 
 #this defines the initial database structure/schema for the application
@@ -30,13 +32,25 @@ class User(UserMixin, db.Model):
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
     #this sets up a one-to-many relationship to the Post model
     #it allows access to all posts authored by this user via user.posts
+    about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
+    #this column stores a brief bio or description about the user, up to 140 characters
+    last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: 
+                                datetime.now(timezone.utc))
+    #this column stores the last time the user was seen (last active)
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     #this method hashes the given password
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
     #this method checks if the given password matches the stored hashed password
-
+    def avatar(self, size):
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        #this method generates a Gravatar URL for the user's avatar based on their email
+        #i encode the email to UTF-8 because the md5 function requires bytes
+        return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
+        #it uses the MD5 hash of the lowercase email to create a unique avatar URL
+    #if some day i decide Gravatar is not good, i can change the implementation of this method without affecting other parts of the code 
+    #by returning different URL or image source
 
     def __repr__(self):
         return '<user {}>'.format(self.username)

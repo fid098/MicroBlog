@@ -17,6 +17,8 @@
           <a href="{{ url_for('login')}}">Login </a>
           {% else %}
           <a href="{{ url_for('logout')}}">Logout </a>
+          <a href="{{ url_for('user', username=current_user.username )}}">Profile</a>
+          <!--link to the profile page of the current user-->
           {% endif %}
         </div>
         <hr>

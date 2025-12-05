@@ -8,6 +8,8 @@ from wtforms.validators import DataRequired, Email, ValidationError, EqualTo
 from app import db
 from app.models import User
 import sqlalchemy as sa
+from wtforms import TextAreaField #importing TextAreaField for multi-line text input
+from wtforms.validators import Length #importing Length validator to limit the length of input text
 
 class LoginForm(FlaskForm):
     #this class defines a login form that inherits from FlaskForm
@@ -40,4 +42,13 @@ class RegistrationForm(FlaskForm):
         if user is not None:
             raise ValidationError('Please use a different email address.')
         #if the email is already registered, a ValidationError is raised
+
+class EditProfileForm(FlaskForm):
+    #this class defines a form for editing user profiles
+    username = StringField('Username', validators=[DataRequired()])
+    about_me = TextAreaField('About me', validators=[Length(min=0, max=140)])
+    #TextAreaField is a multiline box for user to enter a brief bio or description, limited to 140 characters
+    submit = SubmitField('Submit')
+
+
 
