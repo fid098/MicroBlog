@@ -16,3 +16,18 @@ class Config:
     #this sets the database connection URI for SQLAlchemy
     #it first checks for an environment variable named DATABASE_URL
     #if not found it defaults to a SQLite database file named app.db located in the same directory as this config.py file
+
+
+    #first we add the email server details to the config file 
+    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    #email server credentials by default are not used but can be provided if needed. 
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
+    #mail server and port are a boolean flag to enable encrypted connections
+    #the email server port can be given in an environment variable but if not set, the standard port 25 is used 
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    #optional username and password
+    ADMINS = ['fidel.ehirim1@gmail.com'] #list of email addresses that will recieve error reports
+    #when the app is deployed on a production server, we can configure Flask to email me after an error with the stack trace of the error 
+    #the five configuration variables are sourced from their environment variable counterparts 

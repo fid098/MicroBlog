@@ -50,5 +50,18 @@ class EditProfileForm(FlaskForm):
     #TextAreaField is a multiline box for user to enter a brief bio or description, limited to 140 characters
     submit = SubmitField('Submit')
 
+    #constructor (__init__)
+    def __init__(self, original_username, *args, **kwargs):
+        #takes an additional argument original_username and saves it in self.original_username for validation later 
+        super().__init__(*args, **kwargs)
+        #*args and **kwards are passed to FlaskForm's constructor, so the form still works normally 
+        self.original_username = original_username
+
+    def validate_username(self, username):
+        if username.data != self.original_username:
+            user = db.session.scalar(sa.select(User).where(User.username == username.data))
+            if user is not None:
+                raise ValidationError('Please use a different username.')
+
 
 
