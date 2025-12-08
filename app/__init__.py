@@ -6,6 +6,10 @@ from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
+import logging #flask uses this package to write its logs and has the ability to send logs by email
+from logging.handlers import SMTPHandler #SMTPHandler instance is added to the flask logger object 
+from logging.handlers import RotatingFileHandler
+import os 
 
 app = Flask(__name__)
 app.config.from_object(Config)  #this loads the configuration settings from the Config class in config.py
@@ -13,8 +17,41 @@ db = SQLAlchemy(app)  #this initializes the SQLAlchemy object with the flask app
 migrate = Migrate(app, db)  #this sets up database migration support for the app using Flask-Migrate
 login = LoginManager(app) #this initializes the LoginManager with the flask app instance
 
-#importing routes and models at the bottom avoids circular imports as routes also needs to import the app instance
-from app import routes, models 
+
+if not app.debug:
+    #we enable the email logger with running without debug mode 
+    if app.config['MAIL_SERVER']:
+        #and also when the email server exists in the config file 
+        auth = None
+        if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
+            auth = (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        secure = None
+        if app.config['MAIL_USE_TLS']:
+            secure = ()
+        mail_handler = SMTPHandler(
+            mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
+            fromaddr='no-reply@' + app.config['MAIL_SERVER'],
+            toaddrs=app.config['ADMINS'], subject='Microblog Failure',
+            credentials=auth, secure=secure)
+        mail_handler.setLevel(logging.ERROR)
+        app.logger.addHandler(mail_handler)
+        #this code above creates  SMTPHandler instance, sets its level so that it only reports errors 
+        #and finally attaches it to the app.logger object from flask 
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240,
+                                        backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('Microblog startup')
+        #look more into the code above 
+
+#importing routes, errors and models at the bottom avoids circular imports as routes also needs to import the app instance
+from app import routes, models , errors
 #the database model will define the structure of the database tables used in the application
 
 login.login_view = 'login'
