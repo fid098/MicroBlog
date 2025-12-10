@@ -13,8 +13,29 @@
                 <!-- displays the user's about_me information if it exists -->
                 {% if user.last_seen %}<p>Last seen on: {{ user.last_seen}}</p>{% endif %}
                 <!-- displays the user's last seen time if it exists -->
+                 <p>{{ user.followers_count() }} followers, {{ user.following_count() }} following.</p>
+                 <!--this shows how many followers and following users this user has-->
                  {% if user == current_user %}
+                 <!--if the user is viewing their profile they can edit-->
                 <p><a href="{{ url_for('edit_profile') }}">Edit Profile</a></p>
+                {% elif not current_user.is_following(user) %}
+                <!--if the user is viewing a user that is not currently followed, show follow-->
+                <p>
+                    <form action="{{ url_for('follow', username=user.username) }}" method="post">
+                        {{ form.hidden_tag() }}
+                        {{ form.submit(value='Follow') }}
+                        <!--i reuse the emptyform(using follow and unfollow) by passing the value argument when rendering the submit button-->
+                        <!--in a submit button, the value attribute defines the label -->
+                    </form>
+                </p>
+                {% else %}
+                <!--if the user is viewing a user that is currently followed, show unfollow-->
+                <p>
+                    <form action="{{ url_for('unfollow', username=user.username)}}" method="post">
+                        {{ form.hidden_tag() }}
+                        {{ form.submit(value='Unfollow')}}
+                    </form>
+                </p>
                 {% endif %}
             </td>
         </tr>
