@@ -14,6 +14,21 @@ from flask_login import UserMixin
 from hashlib import md5
 #importing hashlib to generate Gravatar URLs for user avatars
 
+#we add it about the User model so that the model can reference later 
+#this is an association table that is used for many-to-many relationships 
+#i dont declare this table as a model as it is an auxillary table that has no data other than the foreign keys 
+followers = sa.Table(
+    #the sa.Tabel class directly represents a database table
+    'followers',
+    #this is the table name 
+    db.metadata,
+    #this metadata is where SQLAlchemy stores the information about all the tables in the database 
+    #the metadata can be obtained with db.metadata
+    sa.Column('follower_id', sa.Integer, sa.ForeignKey('user.id'),
+              primary_key=True),
+    sa.Column('followed_id', sa.Integer, sa.ForeignKey('user.id'),
+              primary_key=True)
+)
 
 #this defines the initial database structure/schema for the application
 class User(UserMixin, db.Model):
@@ -51,10 +66,75 @@ class User(UserMixin, db.Model):
         #it uses the MD5 hash of the lowercase email to create a unique avatar URL
     #if some day i decide Gravatar is not good, i can change the implementation of this method without affecting other parts of the code 
     #by returning different URL or image source
-
+    
     def __repr__(self):
         return '<user {}>'.format(self.username)
     #this method defines how to represent a User object as a string, useful for debugging
+    #now i define my many-to-many relationship 
+    following: so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers,
+        #this configures the association table that is used for this relationship
+        primaryjoin=(followers.c.follower_id == id),
+        #indicates the condition that links the entity to the association table 
+        #followers.c.follower_id(follower_id column of the followers assocaition table)
+        secondaryjoin=(followers.c.followed_id == id),
+        #indicates the condition that links the association table to the user on the other side of the relationship 
+        back_populates='followers')
+        #back_populates connects it to "followers" property 
+    #following relationship means "for the current user, find rows where my ID is follower_id and return the followed_id users"
+    #if i follow alice and bob, user.following returns [alice, bob]
+    followers: so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers, primaryjoin=(followers.c.followed_id == id),
+        secondaryjoin=(followers.c.follower_id == id),
+        back_populates='following')
+        #back_populates connects it to "following" property
+    #followers relationship means "for the current user, find rows where my ID is followed_id, and return the follower_id users"
+    def follow(self, user):
+        if not self.is_following(user):
+            self.following.add(user)
+    #follow uses add() method of the write-only relationship object 
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.following.remove(user)
+    #unfollow uses remove() method of the write-only relationship object
+    def is_following(self, user):
+        query = self.following.select().where(User.id == user.id)
+        return db.session.scalar(query)
+    #this performs a query on the following relationship to see if a given user is already included in it 
+    #all write-only relationships have a select() that constructs a query that returns the elements in the relationship
+    def followers_count(self):
+        query = sa.select(sa.func.count()).select_from(
+            self.followers.select().subquery())
+        return db.session.scalar(query)
+    #in this type of query the results are not returned, but just their count 
+    #the sa.select() specifies the sa.func.count() function from SQL alchemy to indicate that i want to get the result of a function 
+    #select_from() is added with the query that needs to be counted. SQLAlchemy requires the inner query to be converted to a sub-query(.subquery()) 
+    def following_count(self):
+        query = sa.select(sa.func.count()).select_from(
+            self.following.select().subquery())
+        return db.session.scalar(query)
+    #same as followers_count
+    def following_posts(self):
+        Author = so.aliased(User)
+        Follower = so.aliased(User)
+        #we need the user table twice and SQLAlchemy cant distinguish them so we alias(user User table as two roles)
+        #users are authors of posts and users are followers of other users
+        return (
+            sa.select(Post)
+            #this defines the entity that needs to be obtained(Post)
+            .join(Post.author.of_type(Author))
+            #this query gives post with its authors info
+            #we join the entries in the posts tables with the Post.author relationship
+            .join(Author.followers.of_type(Follower), isouter=True)
+            #this query gives post with the authors and with the followers
+            #isouter=True makes it a LEFT OUTER JOIN so posts are still included even if an author has no followers
+            .where(sa.or_(Follower.id == self.id, Author.id == self.id))
+            #shows the posts if the current user follows the author or the current user is the author 
+            .group_by(Post)
+            #this removes duplicates(in the case of an author having multiple followers)
+            .order_by(Post.timestamp.desc())
+            #this orders it so it showes the newest post first 
+        )
 
 
 class Post(db.Model):
