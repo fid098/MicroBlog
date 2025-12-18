@@ -1,8 +1,7 @@
 from app import app, db
 from flask import render_template, request
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm
-#i import the LoginForm class from the forms module in the app package
-#i import the RegistrationForm class from the forms module in the app package
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm
+#i import these Form classes from the forms module in the app package
 from flask import flash, redirect, url_for
 #these are imported to handle flashing messages and redirecting users to different routes
 from flask_login import current_user, login_user, logout_user, login_required
@@ -12,25 +11,49 @@ import sqlalchemy as sa
 from urllib.parse import urlsplit
 #this module defines the routes (URL endpoints) for the Flask web application
 from datetime import datetime, timezone
+from app.models import Post
+#importing the Post class
 
 
 #this is a view function(handlers for the application routes)
-@app.route('/')  #this is a decorator that modifies the function that follows it 
-@app.route('/index')  #this binds the URL /index to the index() function
+@app.route('/', methods=['GET', 'POST'])  #this is a decorator that modifies the function that follows it 
+@app.route('/index', methods=['GET', 'POST'])  #this binds the URL /index to the index() function
+#i accept POST requests since the view function will now recieve form data 
 @login_required
 #this decorator ensures that only authenticated (logged-in) users can access this route
 def index():
 #the route() decorator in flask is used to bind a function to a URL
 #when a user accesses the root URL or /index, the index() function is called and "Hello, world" is returned as the response
 #the app.route() decorator takes the URL pattern as an argument and associates it with the index() function
-    user = {'username': 'Miguel'}
-    posts = [
-        {'author': {'username': 'John'}, 
-         'body': 'Beautiful day in Portland!'},
-        {'author': {'username': 'Susan'}, 
-         'body': 'The Avengers movie was so cool!'}
-    ]
-    return render_template('index.html', title='Home Page', posts=posts)
+    form = PostForm()
+    if form.validate_on_submit():
+        #this inserts a new Post record into the database
+        post = Post(body=form.post.data, author=current_user)
+        #takes the data entered into the text area box in the post form and the author(current user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Your post is now live!')
+        return redirect(url_for('index'))
+        #this allows the user to refresh the page after a submission
+    #posts = db.session.scalars(current_user.following_posts()).all()
+    #this queries the database for all the post of the users that the current user follows 
+    page = request.args.get('page', 1 , type=int)
+    posts = db.paginate(current_user.following_posts(), page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    
+    next_url=None
+    prev_url=None
+    if posts.has_next:
+        next_url = url_for('index', page=posts.next_num)
+    else:
+        None
+    if posts.has_prev:
+        prev_url = url_for('index', page=posts.prev_num)
+    else:
+        None
+    return render_template('index.html', title='Home', form=form,
+                           posts=posts.items, next_url=next_url,
+                           prev_url=prev_url) #the template now recieves the form object as an additional argument, so it can render it to the page 
 #this converts a template file (index.html) into a complete HTML page
 #the render_template() function takes the name of the template file as its first argument
 #additional arguments are key-value pairs that are passed to the template engine
@@ -98,13 +121,26 @@ def user(username):
     user = db.first_or_404(sa.select(User).where(User.username ==username))
     #db.first_or_404 queries the database for a User with the given username
     #if no such user exists, it returns a 404 error
-    posts = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
+    page = request.args.get('page', 1, type=int)
+    query = user.posts.select().order_by(Post.timestamp.desc())
+    posts = db.paginate(query, page=page, per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    
+    prev_url=None
+    next_url=None
+    
+    if posts.has_next:
+        next_url = url_for('user', username=user.username, page=posts.next_num)
+    else:
+        None
+    if posts.has_prev:
+        prev_url = url_for('user',username=user.username, page=posts.prev_num)
+    else:
+        None
     #this route displays the profile page for a user with the given username
     form = EmptyForm()
-    return render_template('user.html', user=user, posts=posts, form=form)
+    return render_template('user.html',form=form,
+                           posts=posts.items, next_url=next_url,
+                           prev_url=prev_url, user=user)
 
 @app.before_request
 def before_request():
@@ -173,3 +209,28 @@ def unfollow(username):
     else:
         return redirect(url_for('index'))
     
+@app.route('/explore')
+@login_required
+def explore():
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Post).order_by(Post.timestamp.desc())   
+    #posts = db.session.scalars(query).all()
+    posts = db.paginate(query, page=page, per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    #error_out flag: if true when an out of range page is requested a 404 error will be automatically returned to the client. 
+    #error_out flag: if false, an empty list will be returned for out of range pages 
+    #items contains the list of items in the requested page. 
+    
+    next_url=None
+    prev_url=None
+    
+    if posts.has_next:
+        next_url = url_for('explore', page=posts.next_num)
+    else:
+        None
+    if posts.has_prev:
+        prev_url = url_for('explore', page=posts.prev_num)
+    else:
+        None
+    return render_template('index.html', title='Explore',next_url=next_url, prev_url=prev_url, posts=posts.items) 
+    #i reuse the index template but do not include the form argument since i dont want the form to write blog posts 
+

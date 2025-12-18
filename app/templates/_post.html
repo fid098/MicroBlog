@@ -2,6 +2,12 @@
     <tr valign="top">
         <td><img src="{{ post.author.avatar(36) }}"></td>
         <!-- displays the avatar of the post's author with a size of 36 pixels -->
-        <td>{{ post.author.username }} says:<br>{{ post.body }}</td>
+        <td>
+            <a href="{{ url_for('user', username=post.author.username) }}">
+                <!--this shows the username of the blog post author as a clickable link-->
+                {{ post.author.username }} 
+            </a>
+            says:<br>{{ post.body }}
+        </td>
     </tr>
 </table>
