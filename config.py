@@ -31,3 +31,7 @@ class Config:
     ADMINS = ['fidel.ehirim1@gmail.com'] #list of email addresses that will recieve error reports
     #when the app is deployed on a production server, we can configure Flask to email me after an error with the stack trace of the error 
     #the five configuration variables are sourced from their environment variable counterparts 
+
+    POSTS_PER_PAGE = 3
+    #i add this configuration item, it determines how many itesm will be displayed per page 
+    #this can be changed to accomodate more posts in the future 
