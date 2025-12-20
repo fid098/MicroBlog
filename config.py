@@ -35,3 +35,6 @@ class Config:
     POSTS_PER_PAGE = 3
     #i add this configuration item, it determines how many itesm will be displayed per page 
     #this can be changed to accomodate more posts in the future 
+
+    SERVER_NAME = 'localhost:5000'
+    PREFERRED_URL_SCHEME = 'http'

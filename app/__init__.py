@@ -10,12 +10,31 @@ import logging #flask uses this package to write its logs and has the ability to
 from logging.handlers import SMTPHandler #SMTPHandler instance is added to the flask logger object 
 from logging.handlers import RotatingFileHandler
 import os 
+from flask_mail import Mail 
 
+
+#we create the extension
+db = SQLAlchemy() 
+migrate = Migrate() 
+login = LoginManager() 
+mail = Mail() 
+
+#create the flask app
 app = Flask(__name__)
 app.config.from_object(Config)  #this loads the configuration settings from the Config class in config.py
-db = SQLAlchemy(app)  #this initializes the SQLAlchemy object with the flask app instance
-migrate = Migrate(app, db)  #this sets up database migration support for the app using Flask-Migrate
-login = LoginManager(app) #this initializes the LoginManager with the flask app instance
+
+
+#then initialize each extension with app and db when needed 
+db.init_app(app)  #this initializes the SQLAlchemy object with the flask app instance
+migrate.init_app(app, db)  #this sets up database migration support for the app using Flask-Migrate
+login.init_app(app) #this initializes the LoginManager with the flask app instance
+mail.init_app(app) #we create an object of the class Mail
+
+
+login.login_view = 'login'
+#this sets the endpoint (view function name) for the login view
+#when a user tries to access a protected page and is not logged in, they will be
+
 
 
 if not app.debug:
@@ -50,13 +69,10 @@ if not app.debug:
         app.logger.info('Microblog startup')
         #look more into the code above 
 
-#importing routes, errors and models at the bottom avoids circular imports as routes also needs to import the app instance
-from app import routes, models , errors
-#the database model will define the structure of the database tables used in the application
 
-login.login_view = 'login'
-#this sets the endpoint (view function name) for the login view
-#when a user tries to access a protected page and is not logged in, they will be
+#importing routes, errors and models at the bottom avoids circular imports as routes also needs to import the app instance
+from app import routes, models , errors, app
+#the database model will define the structure of the database tables used in the application
 
 
 #instead of having to set the FLASK_APP environment variable, we can register it automatically using python-dotenv
