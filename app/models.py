@@ -4,8 +4,8 @@ import sqlalchemy as sa
 #this file defines the database models used in the application
 import sqlalchemy.orm as so
 #importing the database instance created in app/__init__.py
-#so means sqlalchemy.orm
-from app import db, login
+#so is the alias of sqlalchemy.orm
+from app import db, login, app
 #db is the SQLAlchemy instance initialized with the Flask app
 from werkzeug.security import generate_password_hash, check_password_hash
 #we will use these functions to hash passwords before storing them in the database
@@ -13,6 +13,9 @@ from flask_login import UserMixin
 #this mixin provides default implementations for the methods that Flask-Login expects user objects to have
 from hashlib import md5
 #importing hashlib to generate Gravatar URLs for user avatars
+from time import time 
+import jwt #imports JSON web tokens for password reset functionality
+
 
 #we add it about the User model so that the model can reference later 
 #this is an association table that is used for many-to-many relationships 
@@ -135,6 +138,26 @@ class User(UserMixin, db.Model):
             .order_by(Post.timestamp.desc())
             #this orders it so it showes the newest post first 
         )
+    def get_reset_password_token(self, expires_in=600):
+        return jwt.encode({'reset_password': self.id, 'exp': time() + expires_in},
+            app.config['SECRET_KEY'], algorithm='HS256')
+    #this function returns a JWT token as a string which is generated directly by the jwt.encode function
+    #the payload data {'reset_password': self.id, 'exp': time() + expires_in}, a dic that stores the id and expiring time 
+    # app.config['SECRET_KEY'] used to sign the token(to ensure it cant be tampered with)
+    # algorithm specifies the signing algorithm 
+
+    @staticmethod
+    #doesnt take the instance of the class, it can be involked directly from the class 
+    def verify_reset_password_token(token):
+        try:
+            id = jwt.decode(token, app.config['SECRET_KEY'],
+                            algorithms=['HS256'])['reset_password']
+        except:
+            return 
+        return db.session.get(User, id)
+    #this method takes a token and attempts to decode it by using jwt.decode.
+    #if the token cannot be validated or expired an exception is raised to return None 
+    #if the token is valid, the value of the reset_password key from the token's payload is the ID of the user so i can load the user and return it 
 
 
 class Post(db.Model):
