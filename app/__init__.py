@@ -11,13 +11,14 @@ from logging.handlers import SMTPHandler #SMTPHandler instance is added to the f
 from logging.handlers import RotatingFileHandler
 import os 
 from flask_mail import Mail 
-
+from flask_moment import Moment #this provides multiple date formatting options. Flask_moment makes it easy to access moment.js
 
 #we create the extension
 db = SQLAlchemy() 
 migrate = Migrate() 
 login = LoginManager() 
 mail = Mail() 
+moment = Moment()
 
 #create the flask app
 app = Flask(__name__)
@@ -29,7 +30,7 @@ db.init_app(app)  #this initializes the SQLAlchemy object with the flask app ins
 migrate.init_app(app, db)  #this sets up database migration support for the app using Flask-Migrate
 login.init_app(app) #this initializes the LoginManager with the flask app instance
 mail.init_app(app) #we create an object of the class Mail
-
+moment.init_app(app) #we create an object of the class Moment
 
 login.login_view = 'login'
 #this sets the endpoint (view function name) for the login view

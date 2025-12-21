@@ -77,5 +77,8 @@
         crossorigin="anonymous">
     </script>
     <!--this is the JS for the bootstrap, it enables the navbar toggle, the dropdowns and the modals -->
+    {{ moment.include_moment() }}
+    <!--to ensure the moment library is always available, we add it to the base template-->
+    <!--instead of adding a script tag that imports the library, this function generates the script tag -->
   </body>
 </html>

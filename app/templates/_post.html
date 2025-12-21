@@ -11,7 +11,9 @@
                 <!--this shows the username of the blog post author as a clickable link-->
                 {{ post.author.username }} 
             </a>
-            says:<br>{{ post.body }}
+            said {{ moment(post.timestamp).fromNow() }}:
+            <br>
+            {{ post.body }}
         </td>
     </tr>
 </table>
