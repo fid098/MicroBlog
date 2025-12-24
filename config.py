@@ -41,3 +41,8 @@ class Config:
 
     LANGUAGES = ['en_US', 'en_GB', 'es']
     #holds the available languages that the application can be translated to 
+
+    MS_TRANSLATOR_KEY = os.environ.get('MS_TRANSLATOR_KEY')
+    MS_TRANSLATOR_REGION = os.environ.get('MS_TRANSLATOR_REGION') or 'global'
+    #this configuration variable holds the API key for the Microsoft Translator service
+    #it is sourced from an environment variable named MS_TRANSLATOR_KEY

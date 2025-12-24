@@ -174,6 +174,8 @@ class Post(db.Model):
     #this sets up a relationship to the User model, allowing access to the author of the post
     #back_populates links this relationship to the 'posts' relationship defined in the User model
     #the user class has a new "posts" field that is initialized as a relationship to the Post class
+    language: so.Mapped[Optional[str]] = so.mapped_column(sa.String(5))
+    #this column stores the language of the post, represented as a string (e.g., 'en', 'es')
 
     def __repr__(self):
         return '<Post {}>'.format(self.body)
