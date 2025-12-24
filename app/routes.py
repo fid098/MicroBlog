@@ -1,5 +1,6 @@
 from app import app, db
-from flask import render_template, request
+from flask import render_template, request, g 
+#g is a global namespace for holding data during a request
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm
 #i import these Form classes from the forms module in the app package
 from flask import flash, redirect, url_for
@@ -14,6 +15,7 @@ from datetime import datetime, timezone
 from app.models import Post
 #importing the Post class
 from app.email import send_password_reset_email
+from flask_babel import _, get_locale
 
 #this is a view function(handlers for the application routes)
 @app.route('/', methods=['GET', 'POST'])  #this is a decorator that modifies the function that follows it 
@@ -32,7 +34,7 @@ def index():
         #takes the data entered into the text area box in the post form and the author(current user)
         db.session.add(post)
         db.session.commit()
-        flash('Your post is now live!')
+        flash(_('Your post is now live!'))
         return redirect(url_for('index'))
         #this allows the user to refresh the page after a submission
     #posts = db.session.scalars(current_user.following_posts()).all()
@@ -51,7 +53,7 @@ def index():
         prev_url = url_for('index', page=posts.prev_num)
     else:
         None
-    return render_template('index.html', title='Home', form=form,
+    return render_template('index.html', title=_('Home'), form=form,
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url) #the template now recieves the form object as an additional argument, so it can render it to the page 
 #this converts a template file (index.html) into a complete HTML page
@@ -74,7 +76,7 @@ def login():
         #this queries the database for a user with the username provided in the form
         if user is None or not user.check_password(form.password.data):
             #if no such user exists or the password is incorrect, flash an error message and redirect back to the login page
-            flash('Invalid username or password')
+            flash(_('Invalid username or password'))
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
         #this logs in the user and sets a session cookie
@@ -87,7 +89,7 @@ def login():
             next_page = url_for('index')
         return redirect(next_page)
         #redirect the user to the next page or the index page if no next page is specified
-    return render_template('login.html', title='Sign In', form=form)
+    return render_template('login.html', title=_('Sign In'), form=form)
 
 @app.route('/logout')
 def logout():
@@ -149,7 +151,11 @@ def before_request():
         db.session.commit()
         #this function is executed before every request, if the user is authenticated
         #it updates the last_seen field of the current_user to the current UTC time
+    g.locale = str(get_locale())
+    #this sets the locale for the current request using the get_locale() function defined in app
+    #the locale is stored in the g object, which is a global namespace for holding data during a request
 
+    
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required 
 def edit_profile():
@@ -159,13 +165,13 @@ def edit_profile():
         current_user.about_me = form.about_me.data
         #this updates the current user's username and about_me fields with the data from the form
         db.session.commit()
-        flash('Your changed have been saved.')
+        flash(_('Your changes have been saved.'))
         return redirect(url_for('edit_profile'))
     elif request.method == 'GET':
         #this populates the form fields with the current user's data when the form is first loaded
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
-    return render_template('edit_profile.html', title='Edit Profile', form=form)
+    return render_template('edit_profile.html', title=_('Edit Profile'), form=form)
 
 
 @app.route('/follow/<username>', methods=['POST'])
@@ -177,14 +183,14 @@ def follow(username):
             sa.select(User).where(User.username == username)
         )
         if user is None:
-            flash(f'User {username} not found')
+            flash(_('User %(username)s not found', username=username))
             return redirect(url_for('index'))
         if user == current_user:
-            flash('You cannot follow yourself')
+            flash(_('You cannot follow yourself'))
             return redirect(url_for('user', username=username))
         current_user.follow(user)
         db.session.commit()
-        flash(f'You are following {username}')
+        flash(_('You are following %(username)s', username=username))
         return redirect(url_for('user', username=username))
     else:
         return redirect(url_for('index'))
@@ -197,14 +203,14 @@ def unfollow(username):
         user = db.session.scalar(
             sa.select(User).where(User.username == username))
         if user is None:
-            flash(f'User {username} not found.')
+            flash(_('User %(username)s not found.', username=username))
             return redirect(url_for('index'))
         if user == current_user:
-            flash('You cannot unfollow yourself!')
+            flash(_('You cannot unfollow yourself!'))
             return redirect(url_for('user', username=username))
         current_user.unfollow(user)
         db.session.commit()
-        flash(f'You are not following {username}.')
+        flash(_('You are not following %(username)s.', username=username))
         return redirect(url_for('user', username=username))
     else:
         return redirect(url_for('index'))
@@ -231,8 +237,8 @@ def explore():
         prev_url = url_for('explore', page=posts.prev_num)
     else:
         None
-    return render_template('index.html', title='Explore',next_url=next_url, prev_url=prev_url, posts=posts.items) 
-    #i reuse the index template but do not include the form argument since i dont want the form to write blog posts 
+    return render_template('index.html', title=_('Explore'), next_url=next_url, prev_url=prev_url, posts=posts.items)
+    #i reuse the index template but do not include the form argument since i dont want the form to write blog posts
 
 
 @app.route('/reset_password_request', methods=['GET', 'POST'])
@@ -247,9 +253,9 @@ def reset_password_request():
         if user:
             send_password_reset_email(user)
             #then send a password reset email using this helper function
-        flash('Check your email for the instructions to reset your password')
+        flash(_('Check your email for the instructions to reset your password'))
         return redirect(url_for('login'))
-    return render_template('reset_password_request.html', form=form, title='Reset Password')
+    return render_template('reset_password_request.html', form=form, title=_('Reset Password'))
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
@@ -266,6 +272,6 @@ def reset_password(token):
         user.set_password(form.password.data)
         #use .set_password() method of User class to change the password
         db.session.commit()
-        flash('Your password has been reset.')
+        flash(_('Your password has been reset.'))  
         return redirect(url_for('login'))
     return render_template('reset_password.html', form=form)

@@ -4,6 +4,8 @@ from flask import render_template
 from threading import Thread 
 #this thread  allows the send_email() to be asynchronous(it happens in the background)
 #we use a thread so the web request finishes immediately
+from flask_babel import _ #import _ for translations
+
 
 def send_password_reset_email(user):
     token = user.get_reset_password_token()
@@ -23,7 +25,7 @@ def send_password_reset_email(user):
     
         #calls the helper function send_email that sends the email asynchronously.
         send_email(
-        subject='[Microblog] Reset Your Password',
+        _('[Microblog] Reset Your Password'),
         sender=app.config['ADMINS'][0]
         #uses the first email from admins as the sender 
         ,recipients=[user.email]
