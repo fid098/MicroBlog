@@ -38,3 +38,6 @@ class Config:
 
     SERVER_NAME = 'localhost:5000'
     PREFERRED_URL_SCHEME = 'http'
+
+    LANGUAGES = ['en_US', 'en_GB', 'es']
+    #holds the available languages that the application can be translated to 

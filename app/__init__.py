@@ -12,6 +12,10 @@ from logging.handlers import RotatingFileHandler
 import os 
 from flask_mail import Mail 
 from flask_moment import Moment #this provides multiple date formatting options. Flask_moment makes it easy to access moment.js
+from flask import request 
+from flask_babel import Babel, lazy_gettext as _l
+#Flask-Babel is an extension that adds i18n and l10n support to Flask applications, making it easier to translate the app into different languages and format dates, times, and numbers according to the user's locale.
+
 
 #we create the extension
 db = SQLAlchemy() 
@@ -19,6 +23,15 @@ migrate = Migrate()
 login = LoginManager() 
 mail = Mail() 
 moment = Moment()
+babel = Babel()
+
+def get_locale():
+    return request.accept_languages.best_match(app.config['LANGUAGES'])
+    #this uses the attribute of Flask's request object called accept_languages. 
+    #this provides an interface to work with the Accept-Language header that clients send with a request.
+    #the header specifies the client language and locale preferences as a weighted list
+    #the best_match method returns the most appropriate language based on the client's preferences and the available languages in the app configuration
+    #return 'es' #for testing purposes, we force the locale to spanish
 
 #create the flask app
 app = Flask(__name__)
@@ -31,11 +44,15 @@ migrate.init_app(app, db)  #this sets up database migration support for the app 
 login.init_app(app) #this initializes the LoginManager with the flask app instance
 mail.init_app(app) #we create an object of the class Mail
 moment.init_app(app) #we create an object of the class Moment
+babel = Babel(app, locale_selector=get_locale) #the local_selector is set to the function get_locale that is invoked for each request. 
+#didnt continue implementation but will go back to continue if needed 
 
 login.login_view = 'login'
 #this sets the endpoint (view function name) for the login view
 #when a user tries to access a protected page and is not logged in, they will be
-
+login.login_message = _l('Please log in to access this page.')
+#this sets the message that will be flashed to the user when they are redirected to the login page
+#the _l() function marks the string for lazy translation, meaning the actual translation will be done when the message is rendered, not when it is defined
 
 
 if not app.debug:

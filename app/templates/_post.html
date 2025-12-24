@@ -7,12 +7,16 @@
         </td>
         <!-- displays the avatar of the post's author with a size of 36 pixels -->
         <td>
+            {% set user_link %}
+            <!--the variable user_link holds the HTML for the user's profile link-->
             <a href="{{ url_for('user', username=post.author.username) }}">
                 <!--this shows the username of the blog post author as a clickable link-->
                 {{ post.author.username }} 
             </a>
-            said {{ moment(post.timestamp).fromNow() }}:
-            <br>
+            {% endset %}
+            {{ _('%(username)s said %(when)s',
+                username=user_link, when=moment(post.timestamp).fromNow()) }}
+                <br>
             {{ post.body }}
         </td>
     </tr>
