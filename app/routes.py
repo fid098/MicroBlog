@@ -16,6 +16,10 @@ from app.models import Post
 #importing the Post class
 from app.email import send_password_reset_email
 from flask_babel import _, get_locale
+from langdetect import detect, LangDetectException #to detect the language of the post content
+from app.translate import translate #to translate text using an external translation service in app/translate.py
+from flask import jsonify
+
 
 #this is a view function(handlers for the application routes)
 @app.route('/', methods=['GET', 'POST'])  #this is a decorator that modifies the function that follows it 
@@ -29,8 +33,14 @@ def index():
 #the app.route() decorator takes the URL pattern as an argument and associates it with the index() function
     form = PostForm()
     if form.validate_on_submit():
-        #this inserts a new Post record into the database
-        post = Post(body=form.post.data, author=current_user)
+        try:
+            language = detect(form.post.data)
+            #this uses the detect() function from langdetect to determine the language of the post content
+        except LangDetectException:
+            language = ''
+            #if language detection fails, set language to an empty string
+            #this inserts a new Post record into the database
+        post = Post(body=form.post.data, author=current_user, language=language)
         #takes the data entered into the text area box in the post form and the author(current user)
         db.session.add(post)
         db.session.commit()
@@ -275,3 +285,14 @@ def reset_password(token):
         flash(_('Your password has been reset.'))  
         return redirect(url_for('login'))
     return render_template('reset_password.html', form=form)
+
+@app.route('/translate', methods=['POST'])
+@login_required
+def translate_text():
+    data = request.get_json()
+    #this gets the JSON data sent in the POST request like the text to be translated, source language, and destination language
+    #it returns a dictionary with data that the client has submitted
+    return jsonify({
+        'text': translate(data['text'], data['source_language'], data['dest_language'])
+    })
+    #this calls the translate() function from app/translate.py to perform the translation

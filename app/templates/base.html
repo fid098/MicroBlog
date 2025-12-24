@@ -75,11 +75,40 @@
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous">
+
     </script>
     <!--this is the JS for the bootstrap, it enables the navbar toggle, the dropdowns and the modals -->
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }} <!--this sets the language for moment.js-->
     <!--to ensure the moment library is always available, we add it to the base template-->
     <!--instead of adding a script tag that imports the library, this function generates the script tag -->
+    <script>
+        //async indicates that the function operates asynchronously and may use the await keyword to pause execution until a promise is resolved
+        async function translate(sourceElem, destElem, sourceLang, destLang) 
+        // this is the JS function that handles the translation of post content 
+        // it takes four arguments: sourceElem(the HTML ID of the element containing the original text), destElem(the HTML ID of the element where the translated text will be displayed, "Translate" link),
+        // sourceLang(the language code of the original text, "en"), and destLang(the language code for the translation, "es")
+        {
+          document.getElementById(destElem).innerHTML =
+          //this finds the element referenced by destElem, replaces its contents with an <img> tag 
+          // we use innerHTML to insert HTML content (the loading spinner) into the element
+          "<img src=\"{{ url_for('static', filename='loading.gif') }}\">"; // shows a loading spinner while the translation is in progress
+          //fetch is used to make an async HTTP request to the server
+          const response = await fetch('/translate', 
+          // this sends a POST request to the /translate endpoint(route)
+          {
+            method: 'POST', // specifies that the request method is POST
+            headers: {'Content-Type': 'application/json; charset=utf-8'}, // sets the content type to JSON
+            body: JSON.stringify({
+              //converts the javascript object into json text that flask can read 
+              text: document.getElementById(sourceElem).innerText, source_language: sourceLang, dest_language: destLang
+            })
+          })
+          const data = await response.json(); // this waits for the response and parses it as JSON
+          //await pauses execution until the promise returned by response.json() is resolved, without await response would not contain usable data
+          document.getElementById(destElem).innerText = data.text;
+          // this gets the translated text from the response and updates the innerText of the destination element
+        }
+    </script>
   </body>
 </html>

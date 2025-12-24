@@ -17,7 +17,20 @@
             {{ _('%(username)s said %(when)s',
                 username=user_link, when=moment(post.timestamp).fromNow()) }}
                 <br>
-            {{ post.body }}
+            <span id="post{{ post.id }}">{{ post.body }}</span>
+            <!--span id="post{{ post.id }}" holds the post content-->
+            {% if post.language and post.language != g.locale %}
+            <br><br>
+            <span id="translation{{ post.id }}">
+                    <a href="javascript:translate(
+                                'post{{ post.id }}',
+                                'translation{{ post.id }}',
+                                '{{ post.language }}',
+                                '{{ g.locale }}');">{{ _('Translate') }}</a>
+                </span>
+            {% endif %}
+            <!--this calls the javascript function translate() with the appropriate arguments-->
+            <!--if the post has a language set and it is different from the current locale, show a translate link-->
         </td>
     </tr>
 </table>
