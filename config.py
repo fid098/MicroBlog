@@ -46,3 +46,8 @@ class Config:
     MS_TRANSLATOR_REGION = os.environ.get('MS_TRANSLATOR_REGION') or 'global'
     #this configuration variable holds the API key for the Microsoft Translator service
     #it is sourced from an environment variable named MS_TRANSLATOR_KEY
+
+    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or None
+    #this configuration variable holds the URL for the Elasticsearch server
+    #it is sourced from an environment variable named ELASTICSEARCH_URL
+

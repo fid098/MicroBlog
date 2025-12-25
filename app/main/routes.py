@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from flask import render_template, flash, redirect, url_for, request, g, \
-    current_app
+    current_app, g
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 import sqlalchemy as sa
@@ -11,6 +11,7 @@ from app.models import User, Post
 from app.translate import translate
 from app.main import bp
 from flask import jsonify
+from app.main.forms import SearchForm
 
 @bp.before_request
 def before_request():
@@ -19,6 +20,9 @@ def before_request():
         db.session.commit()
         #this function is executed before every request, if the user is authenticated
         #it updates the last_seen field of the current_user to the current UTC time
+        g.search_form = SearchForm()
+        #g is a special object provided by Flask that is used to store data during the request
+        #this creates an instance of the SearchForm and assigns it to g.search_form
     g.locale = str(get_locale())
     #this sets the locale for the current request using the get_locale() function defined in app
     #the locale is stored in the g object, which is a global namespace for holding data during a request
@@ -199,3 +203,24 @@ def user(username):
     return render_template('user.html',form=form,
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url, user=user)
+
+@bp.route('/search')
+@login_required
+def search():
+    if not g.search_form.validate():
+        return redirect(url_for('main.explore'))
+    #this checks if the search form is valid, if not it redirects to the explore page
+    page = request.args.get('page', 1, type=int)
+    if page < 1:
+        page = 1
+    #this gets the page number from the query parameters, defaulting to 1 if not provided
+    posts, total = Post.search(g.search_form.q.data, page, current_app.config['POSTS_PER_PAGE'])
+    #this calls the search method of the Post model(SearchableMixin class) to perform the search using the query from the search form
+    #it retrieves the matching posts and the total number of results
+    next_url = url_for('main.search', q=g.search_form.q.data, page=page + 1)
+    #this constructs the URL for the next page of results
+    prev_url = url_for('main.search', q=g.search_form.q.data, page=page - 1)
+    #this constructs the URL for the previous page of results
+    return render_template('search.html', title=_('Search'), posts=posts,
+                           next_url=next_url, prev_url=prev_url)
+    #this renders the search.html template with the search results and pagination links

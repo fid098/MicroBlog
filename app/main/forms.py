@@ -5,6 +5,25 @@ import sqlalchemy as sa
 from flask_babel import _, lazy_gettext as _l
 from app import db
 from app.models import User
+from flask import request
+
+class SearchForm(FlaskForm):
+    #this class defines a search form for user input
+    q = StringField(_l('Search'), validators=[DataRequired()])
+    #q is the name of the search input field, it is a string field with a label 'Search'
+
+    def __init__(self, *args, **kwargs):
+        #constructor (__init__) that takes arbitrary positional and keyword arguments
+        #*args and **kwargs are passed to the parent class constructor and allows for flexible instantiation of the form
+        if 'formdata' not in kwargs:
+            kwargs['formdata'] = request.args
+        #if formdata is not provided, it defaults to request.args, allowing the form to capture query parameters from the URL
+        #the formdata parameter specifies the source of form input data like query parameters or form submissions
+        if 'meta' not in kwargs:
+            kwargs['meta'] = {'csrf': False}
+        #CSRF protection is disabled for this form by setting the meta parameter's csrf attribute to False
+        super(SearchForm, self).__init__(*args, **kwargs)
+        #calls the parent class constructor with the modified arguments
 
 
 class EditProfileForm(FlaskForm):
