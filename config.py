@@ -39,7 +39,7 @@ class Config:
     SERVER_NAME = 'localhost:5000'
     PREFERRED_URL_SCHEME = 'http'
 
-    LANGUAGES = ['en_US', 'en_GB', 'es']
+    LANGUAGES = ['en_US', 'en_GB', 'es', 'tur', 'fr', 'de', 'zh_CN']
     #holds the available languages that the application can be translated to 
 
     MS_TRANSLATOR_KEY = os.environ.get('MS_TRANSLATOR_KEY')

@@ -1,9 +1,11 @@
 import os
 import click #this file defines custom command line commands for managing translations in the Flask app
-from app import app #importing the app instance from the app package
+from app import current_app #importing the app instance from the app package
+from flask import Blueprint #importing Blueprint class from Flask to create a CLI blueprint
 
+bp = Blueprint('cli', __name__, cli_group=None)
 
-@app.cli.group() #this decorator creates a new command group called translate
+@bp.cli.group() #this decorator creates a new command group called translate
 def translate():
     """Translation and localization commands."""
     pass
