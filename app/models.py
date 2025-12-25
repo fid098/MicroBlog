@@ -5,7 +5,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as so
 #importing the database instance created in app/__init__.py
 #so is the alias of sqlalchemy.orm
-from app import db, login, app
+from app import db, login, current_app
 #db is the SQLAlchemy instance initialized with the Flask app
 from werkzeug.security import generate_password_hash, check_password_hash
 #we will use these functions to hash passwords before storing them in the database
@@ -140,17 +140,17 @@ class User(UserMixin, db.Model):
         )
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode({'reset_password': self.id, 'exp': time() + expires_in},
-            app.config['SECRET_KEY'], algorithm='HS256')
+           current_app.config['SECRET_KEY'], algorithm='HS256')
     #this function returns a JWT token as a string which is generated directly by the jwt.encode function
     #the payload data {'reset_password': self.id, 'exp': time() + expires_in}, a dic that stores the id and expiring time 
-    # app.config['SECRET_KEY'] used to sign the token(to ensure it cant be tampered with)
+    # current_app.config['SECRET_KEY'] used to sign the token(to ensure it cant be tampered with)
     # algorithm specifies the signing algorithm 
 
     @staticmethod
     #doesnt take the instance of the class, it can be involked directly from the class 
     def verify_reset_password_token(token):
         try:
-            id = jwt.decode(token, app.config['SECRET_KEY'],
+            id = jwt.decode(token, current_app.config['SECRET_KEY'],
                             algorithms=['HS256'])['reset_password']
         except:
             return 

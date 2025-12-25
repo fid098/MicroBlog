@@ -1,9 +1,11 @@
-from app import app, db, cli
+from app import create_app, db
 #this imports the app variable that is a member of the app package.
 #the app variable is the Flask application instance created in app/__init__.py
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from app.models import User, Post
+
+app = create_app()
 
 @app.shell_context_processor
 def make_shell_context():

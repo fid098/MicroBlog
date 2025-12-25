@@ -17,11 +17,11 @@
                  <!--this shows how many followers and following users this user has-->
                  {% if user == current_user %}
                  <!--if the user is viewing their profile they can edit-->
-                <p><a href="{{ url_for('edit_profile') }}">{{ _('Edit your profile') }}</a></p>
+                <p><a href="{{ url_for('main.edit_profile') }}">{{ _('Edit your profile') }}</a></p>
                 {% elif not current_user.is_following(user) %}
                 <!--if the user is viewing a user that is not currently followed, show follow-->
                 <p>
-                    <form action="{{ url_for('follow', username=user.username) }}" method="post">
+                    <form action="{{ url_for('main.follow', username=user.username) }}" method="post">
                         {{ form.hidden_tag() }}
                         {{ form.submit(value=_('Follow'), class_='btn btn-primary') }}
                         <!--i reuse the emptyform(using follow and unfollow) by passing the value argument when rendering the submit button-->
@@ -31,7 +31,7 @@
                 {% else %}
                 <!--if the user is viewing a user that is currently followed, show unfollow-->
                 <p>
-                    <form action="{{ url_for('unfollow', username=user.username)}}" method="post">
+                    <form action="{{ url_for('main.unfollow', username=user.username) }}" method="post">
                         {{ form.hidden_tag() }}
                         {{ form.submit(value=_('Unfollow'), class_='btn btn-primary') }}
                     </form>

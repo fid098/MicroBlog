@@ -4,8 +4,7 @@
 {% block content %}
     <h1>{{ _('Sign In') }}</h1>
     {{ wtf.quick_form(form) }}
-    <p>{{ _('New User?') }} <a href="{{ url_for('register') }}">{{ _('Click to Register!') }}</a></p>
-    <p>{{ _('Forgot your Password?') }} <a href="{{ url_for('reset_password_request') }}">{{ _('Click to reset it') }}</a></p>
+    <p>{{ _('New User?') }} <a href="{{ url_for('auth.register') }}">{{ _('Click to Register!') }}</a></p>
+    <p>{{ _('Forgot your Password?') }} <a href="{{ url_for('auth.reset_password_request') }}">{{ _('Click to reset it') }}</a></p>
     <!--when the user clicks the link, a new web form will appear that requests the users email-->
 {% endblock %}
-
