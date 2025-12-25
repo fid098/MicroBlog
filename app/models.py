@@ -5,7 +5,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as so
 #importing the database instance created in app/__init__.py
 #so is the alias of sqlalchemy.orm
-from app import db, login, current_app
+from app import db, login
 #db is the SQLAlchemy instance initialized with the Flask app
 from werkzeug.security import generate_password_hash, check_password_hash
 #we will use these functions to hash passwords before storing them in the database
@@ -15,11 +15,12 @@ from hashlib import md5
 #importing hashlib to generate Gravatar URLs for user avatars
 from time import time 
 import jwt #imports JSON web tokens for password reset functionality
-
-
-#we add it about the User model so that the model can reference later 
-#this is an association table that is used for many-to-many relationships 
-#i dont declare this table as a model as it is an auxillary table that has no data other than the foreign keys 
+from app.search import add_to_index, remove_from_index, query_index
+# we import the search functions defined in app/search.py to integrate full-text search capabilities with our models
+from flask import current_app
+# we add it about the User model so that the model can reference later
+# this is an association table that is used for many-to-many relationships
+# i dont declare this table as a model as it is an auxillary table that has no data other than the foreign keys
 followers = sa.Table(
     #the sa.Tabel class directly represents a database table
     'followers',
@@ -160,11 +161,71 @@ class User(UserMixin, db.Model):
     #if the token is valid, the value of the reset_password key from the token's payload is the ID of the user so i can load the user and return it 
 
 
-class Post(db.Model):
+class SearchableMixin(object):
+    @classmethod #class method decorator that indicates the method is bound to the class and not the instance
+    def search(cls, expression, page, per_page):
+        ids, total = query_index(cls.__tablename__, expression, page, per_page)
+        #this calls the query_index function defined in app/search.py to perform the search and takes these parameters:
+        #cls.__tablename__: the name of the database table associated with the model class
+        if total == 0 or not ids:
+            empty_query = sa.select(cls).where(sa.false())
+            return db.session.scalars(empty_query), 0
+            #if no results are found, return an empty query
+        when = [] #this will hold the ordering conditions
+        for i in range(len(ids)):
+            when.append((ids[i], i)) #this creates a list of tuples mapping each ID to its position in the search results by iterating over the list of IDs and appending a tuple (id, index) to the when list
+        query = sa.select(cls).where(cls.id.in_(ids)).order_by(
+            db.case(*when, value=cls.id))
+        #this constructs a SQLAlchemy query to retrieve the model instances corresponding to the search results
+        #it selects all columns from the model's table where the ID is in the list of IDs returned by the search
+        #the order_by clause uses a CASE statement to preserve the order of the search results based
+        return db.session.scalars(query), total
+    #this executes the constructed query and returns the results as a list of model instances along with the total number of matches found
+    
+    @classmethod
+    def before_commit(cls, session):
+        session._changes = { #session._changes is a custom attribute added to the session object to track changes made during the session
+            'add': list(session.new), #list of new objects to be added
+            'update': list(session.dirty), #list of modified objects
+            'delete': list(session.deleted) #list of deleted objects
+        }
+    #this method is called before a database commit to track changes made to the session
+
+    @classmethod
+    def after_commit(cls, session):
+        for obj in session._changes['add']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        #this method is called after a database commit to perform any necessary actions based on the changes made during the session
+        for obj in session._changes['update']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        #this updates the search index for updated objects
+        for obj in session._changes['delete']:
+            if isinstance(obj, SearchableMixin):
+                remove_from_index(obj.__tablename__, obj)
+        #this removes deleted objects from the search index
+        session._changes = None
+        #clears the tracked changes after processing
+
+    @classmethod
+    def reindex(cls):
+        for obj in db.session.scalars(sa.select(cls)):
+            add_to_index(cls.__tablename__,obj)
+    #this method reindexes all instances of the model class in the search index
+
+db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
+#this sets up an event listener that calls the before_commit method of SearchableMixin before a database commit
+db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
+#this sets up an event listener that calls the after_commit method of SearchableMixin after a database commit
+
+class Post(SearchableMixin, db.Model):
+    #searchablemixin is added as a base class to enable full-text search capabilities for the Post model
+    __searchable__ = ['body'] #this indicates that the body field of the Post model should be indexed for full-text search
     #this represents the blog posts stored in the database 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
-    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda : datetime.now(timezone.utc))
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     #this column stores the date and time when the post was created
     #the default value is the current date and time in UTC when the post is created
     #when you pass a function as a default, sa sets the field to the value returned by the function

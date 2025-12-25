@@ -13,7 +13,8 @@ from flask_moment import Moment
 from config import Config #importing the Config class from config
 from flask_babel import Babel, lazy_gettext as _l
 #Flask-Babel is an extension that adds i18n and l10n support to Flask applications, making it easier to translate the app into different languages and format dates, times, and numbers according to the user's locale.
-
+import os 
+from elasticsearch import Elasticsearch
 
 def get_locale():
     return request.accept_languages.best_match(current_app.config['LANGUAGES'])
@@ -48,6 +49,17 @@ def create_app(config_class=Config):
     moment.init_app(app) #we create an object of the class Moment
     babel = Babel(app, locale_selector=get_locale) #the local_selector is set to the function get_locale that is invoked for each request. 
     #didnt continue implementation but will go back to continue if needed 
+
+
+    es_url = os.environ.get('ELASTICSEARCH_URL') #getting the elasticsearch url from environment variable
+    if es_url: #if the elasticsearch url exists
+        #create an instance of the Elasticsearch client and attach it to the app instance
+        ca_path = os.environ.get("ELASTICSEARCH_CA_CERT")  #getting the path to the CA certificate from environment variable
+        app.elasticsearch = Elasticsearch([es_url], basic_auth=( 
+            os.environ.get("ELASTICSEARCH_USER"), os.environ.get("ELASTICSEARCH_PASSWORD")
+        ), ca_certs=ca_path,) #getting the elasticsearch user, password and ca_certs from environment variables
+    else:
+        app.elasticsearch = None #if the elasticsearch url does not exist, set the app.elasticsearch attribute to None
 
     #when a blueprint is registered with the app, all the routes,view functions, static files and error handlers defined in that blueprint become part of the application
     from app.errors import bp as errors_bp #importing the errors blueprint from app/errors/__init__.py

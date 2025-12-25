@@ -56,6 +56,16 @@
       </div>
     </nav>
     <div class="container mt-3">
+      {% if g.search_form %}
+          <!-- checks if the search form exists -->
+          <form method="GET" action="{{ url_for('main.search') }}" class="mb-3">
+            <!--this is a get method because it retrieves data from the server without modifying any resources-->
+           <div class="input-group"> <!-- this div groups the form elements together -->
+               {{ g.search_form.q(size=20, class='form-control', placeholder=g.search_form.q.label.text) }}
+              <!-- this renders the search input field -->
+              </div>
+            </form>
+        {% endif %}
         {% with messages = get_flashed_messages() %}
         <!-- using "with" construct to assign the result of calling get_flashed_messages() to a messages variable-->
         {% if messages %}
