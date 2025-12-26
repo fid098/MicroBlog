@@ -119,6 +119,58 @@
           document.getElementById(destElem).innerText = data.text;
           // this gets the translated text from the response and updates the innerText of the destination element
         }
+        function initialize_popovers() {
+          //this function initializes all popovers on the page
+          const popups = document.getElementsByClassName('user_popup');
+          //this gets all elements with the user_popup class and stores them in the popups variable
+          for (let i = 0; i < popups.length; i++) {
+            //this loops through each element with the user_popup class in the popups variable
+            const popover = new bootstrap.Popover(popups[i], {
+              //this creates a new bootstrap popover for each element and tells boostrap how to behave when triggered
+              //bootstrap.Popover takes the element that is getting a popover as first argument, and an object with options as second argument
+              content: 'Loading...',
+              //initial content of the popover is "Loading...", it will be updated later with AJAX after fetching user info from the server
+              trigger: 'hover focus',
+              //the popover is shown when the user hovers over or focuses on the element
+              placement: 'right',
+              //the popover appears to the right of the element
+              html: true,
+              //allows HTML content inside the popover
+              sanitize: false,
+              //disables sanitization to allow custom HTML, sanitizing html is a security feature to prevent XSS attacks
+              delay: {show: 500, hide: 0 },
+              //adds a 500ms delay before showing the popover
+              container: popups[i],
+              //the popover is contained within the element itself
+              customClass: 'd-inline',
+              //adds the d-inline class to the popover for inline display
+            });
+            popups[i].addEventListener('show.bs.popover', async (ev) => {
+              if (ev.target.popupLoaded) {
+                return; //stops the program from crashing/sending the same request
+              }
+              //the show event for the popover components recieves an ev argument, with the event object. 
+              //the element that triggered the event can be obtained with ev.target.
+              const response = await fetch('/user/' + ev.target.innerText.trim() + '/popup');
+              //this sends a post request to the user popup, .innerText.trim() returns the trimmed(no newlines and whitepace) text contents of the node
+              const data = await response.text();
+              //once i have the response i store the text in data variable
+              const popover = bootstrap.Popover.getInstance(ev.target);
+              //i obtain the popover component using the getInstance method
+              if (popover && data) {
+                //if i have the data and component
+                ev.target.popupLoaded = true;
+                //set popuploaded to true so i dont resend the same request.
+                popover.setContent({'.popover-body': data});
+                //this sets the contents of the data text onto the popover
+                flask_moment_render_all();
+                //this renders the timestamps when the page is loaded
+              }
+            });
+          }
+        }
+        document.addEventListener('DOMContentLoaded', initialize_popovers);
+          //this event listener waits for the DOM content to be fully loaded before initializing popovers
     </script>
   </body>
 </html>

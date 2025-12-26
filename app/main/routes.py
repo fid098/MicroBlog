@@ -184,6 +184,7 @@ def user(username):
     #db.first_or_404 queries the database for a User with the given username
     #if no such user exists, it returns a 404 error
     page = request.args.get('page', 1, type=int)
+    #this gets the page number from the query parameters, defaulting to 1 if not provided
     query = user.posts.select().order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
 
@@ -224,3 +225,13 @@ def search():
     return render_template('search.html', title=_('Search'), posts=posts,
                            next_url=next_url, prev_url=prev_url)
     #this renders the search.html template with the search results and pagination links
+
+@bp.route('/user/<username>/popup')
+@login_required
+def user_popup(username):
+    user = db.first_or_404(sa.select(User).where(User.username == username))
+    #looks up the user by username, if not found returns 404 error
+    form = EmptyForm()
+    return render_template('user_popup.html', user=user, form=form)
+
+

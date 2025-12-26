@@ -1,0 +1,35 @@
+<div>
+  <img src="{{ user.avatar(64) }}" style="margin: 5px; float: left">
+  <!--displays the avatar image-->
+  <p><a href="{{ url_for('main.user', username=user.username) }}">{{ user.username }}</a></p>
+  <!--displays the user's about me section if it exists-->
+  {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
+  <div class="clearfix"></div>
+  {% if user.last_seen %}
+  <p>{{ _('Last seen on') }}: {{ moment(user.last_seen).format('lll') }}</p>
+  {% endif %}
+  <!--if user.last_seen is not None, display the last seen time-->
+  <p>{{ _('%(count)d followers', count=user.followers_count()) }}, {{ _('%(count)d following', count=user.following_count()) }}</p>
+  <!--displays the users following and follower count-->
+  {% if user != current_user %}
+  <!--if the user is not the current user-->
+    {% if not current_user.is_following(user) %}
+    <!--if the current user is not following the user-->
+    <p>
+        <!--Follow button-->
+      <form action="{{ url_for('main.follow', username=user.username) }}" method="post">
+        {{ form.hidden_tag() }}
+        {{ form.submit(value=_('Follow'), class_='btn btn-outline-primary btn-sm') }}
+      </form>
+    </p>
+    {% else %}
+    <!--Unfollow button-->
+    <p>
+      <form action="{{ url_for('main.unfollow', username=user.username) }}" method="post">
+        {{ form.hidden_tag() }}
+        {{ form.submit(value=_('Unfollow'), class_='btn btn-outline-primary btn-sm') }}
+      </form>
+    </p>
+    {% endif %}
+  {% endif %}
+</div>
