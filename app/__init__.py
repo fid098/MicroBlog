@@ -52,12 +52,20 @@ def create_app(config_class=Config):
 
 
     es_url = os.environ.get('ELASTICSEARCH_URL') #getting the elasticsearch url from environment variable
-    if es_url: #if the elasticsearch url exists
-        #create an instance of the Elasticsearch client and attach it to the app instance
+    es_user = os.environ.get('ELASTICSEARCH_USER') #getting the elasticsearch user from environment variable
+    es_password = os.environ.get('ELASTICSEARCH_PASSWORD') #getting the elasticsearch password from environment variable
+
+    if es_url:
+        es_kwargs = {}  #initializing an empty dictionary to hold elasticsearch connection parameters
+        if es_user and es_password:
+            es_kwargs['basic_auth'] = (es_user, es_password)
+            #if both user and password are provided, add them to the es_kwargs dictionary for basic authentication
         ca_path = os.environ.get("ELASTICSEARCH_CA_CERT")  #getting the path to the CA certificate from environment variable
-        app.elasticsearch = Elasticsearch([es_url], basic_auth=( 
-            os.environ.get("ELASTICSEARCH_USER"), os.environ.get("ELASTICSEARCH_PASSWORD")
-        ), ca_certs=ca_path,) #getting the elasticsearch user, password and ca_certs from environment variables
+        if es_url.startswith('https') and ca_path:
+            es_kwargs['ca_certs'] = ca_path
+            #if a CA certificate path is provided, add it to the es_kwargs dictionary for secure connection
+        app.elasticsearch = Elasticsearch([es_url], **es_kwargs)
+        #create an instance of the Elasticsearch client and attach it to the app instance
     else:
         app.elasticsearch = None #if the elasticsearch url does not exist, set the app.elasticsearch attribute to None
 
@@ -95,14 +103,20 @@ def create_app(config_class=Config):
             app.logger.addHandler(mail_handler)
             #this code above creates  SMTPHandler instance, sets its level so that it only reports errors 
             #and finally attaches it to the app.logger object from flask 
-            if not os.path.exists('logs'):
-                os.mkdir('logs')
-            file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240,
-                                            backupCount=10)
-            file_handler.setFormatter(logging.Formatter(
-                '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-            file_handler.setLevel(logging.INFO)
-            app.logger.addHandler(file_handler)
+            if app.config['LOG_TO_STDOUT']:
+                stream_handler = logging.StreamHandler()
+                stream_handler.setLevel(logging.INFO)
+                app.logger.addHandler(stream_handler)
+            else:
+                if not os.path.exists('logs'):
+                    os.mkdir('logs')
+                file_handler = RotatingFileHandler('logs/microblog.log',
+                                               maxBytes=10240, backupCount=10)
+                file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s '
+                '[in %(pathname)s:%(lineno)d]'))
+                file_handler.setLevel(logging.INFO)
+                app.logger.addHandler(file_handler)
 
             app.logger.setLevel(logging.INFO)
             app.logger.info('Microblog startup')
