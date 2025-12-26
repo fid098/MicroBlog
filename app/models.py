@@ -18,7 +18,13 @@ import jwt #imports JSON web tokens for password reset functionality
 from app.search import add_to_index, remove_from_index, query_index
 # we import the search functions defined in app/search.py to integrate full-text search capabilities with our models
 from flask import current_app
-# we add it about the User model so that the model can reference later
+import json
+from time import time 
+
+
+
+
+# we add it above the User model so that the model can reference later
 # this is an association table that is used for many-to-many relationships
 # i dont declare this table as a model as it is an auxillary table that has no data other than the foreign keys
 followers = sa.Table(
@@ -161,6 +167,23 @@ class User(UserMixin, db.Model):
     #if the token cannot be validated or expired an exception is raised to return None 
     #if the token is valid, the value of the reset_password key from the token's payload is the ID of the user so i can load the user and return it 
 
+    last_message_read_time: so.Mapped[Optional[datetime]]
+    #this whill have the last time the user visited the messages page
+    messages_sent: so.WriteOnlyMapped['Message'] = so.relationship(foreign_keys='Message.sender_id', back_populates='author')
+    messages_recieved: so.WriteOnlyMapped['Message'] = so.relationship(foreign_keys='Message.recipient_id', back_populates='recipient')
+    def unread_message_count(self):
+        #uses the last_message_read field to return how many unread messages the user has
+        last_read_time = self.last_message_read_time or datetime(1900, 1, 1)
+        query = sa.select(Message).where(Message.recipient == self, Message.timestamp > last_read_time)
+        return db.session.scalar(sa.select(sa.func.count()).select_from(query.subquery()))
+    notifications: so.WriteOnlyMapped['Notification'] = so.relationship(back_populates='user')
+    def add_notification(self, name, data):
+        db.session.execute(self.notifications.delete().where(Notification.name == name))
+        #this adds a notification and if a noti with the same name already exists, it is removed first
+        #the delete() method removes all elements without loading them.
+        n = Notification(name=name, payload_json=json.dumps(data), user=self)
+        db.session.add(n)
+        return n
 
 class SearchableMixin(object):
     @classmethod #class method decorator that indicates the method is bound to the class and not the instance
@@ -250,3 +273,31 @@ def load_user(id):
 #this function is used by Flask-Login to load a user from the database given their user ID
 #it queries the User model using the provided ID and returns the corresponding User object
 
+
+class Message(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    recipient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    body: so.Mapped[str] = so.mapped_column(sa.String(140))
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    author: so.Mapped[User] = so.relationship(foreign_keys='Message.sender_id', back_populates='messages_sent')
+    recipient: so.Mapped[User] = so.relationship(foreign_keys='Message.recipient_id', back_populates='messages_recieved')
+
+    def __repr__(self):
+        return '<Message {}>'.format(self.body)
+
+class Notification(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),
+                                               index=True)
+    timestamp: so.Mapped[float] = so.mapped_column(index=True, default=time)
+    #timestamp gets its default value from the time.time() function
+    payload_json: so.Mapped[str] = so.mapped_column(sa.Text)
+    #payload is going to be different for each type of notification, so i write it as a JSON string
+    #this will allow me to write lists, dictionaries or single values.
+    user: so.Mapped[User] = so.relationship(back_populates='notifications')
+
+    def get_data(self):
+        return json.loads(str(self.payload_json))
+    #getter function to get the json string file
