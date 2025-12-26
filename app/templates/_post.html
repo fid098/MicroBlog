@@ -9,7 +9,7 @@
         <td>
             {% set user_link %}
             <!--the variable user_link holds the HTML for the user's profile link-->
-            <a href="{{ url_for('main.user', username=post.author.username) }}">
+            <a class="user_popup" href="{{ url_for('main.user', username=post.author.username) }}">
                 <!--this shows the username of the blog post author as a clickable link-->
                 {{ post.author.username }} 
             </a>
