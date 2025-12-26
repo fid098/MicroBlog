@@ -26,7 +26,7 @@ def login():
         if user is None or not user.check_password(form.password.data):
             #if no such user exists or the password is incorrect, flash an error message and redirect back to the login page
             flash(_('Invalid username or password'))
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
         login_user(user, remember=form.remember_me.data)
         #this logs in the user and sets a session cookie
         #the remember parameter indicates whether to remember the user across sessions

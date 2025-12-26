@@ -36,6 +36,7 @@ followers = sa.Table(
 
 #this defines the initial database structure/schema for the application
 class User(UserMixin, db.Model):
+    __tablename__ = "user"
     #this represents users stored in the database, the class inherits from db.Model which is the base class for all models defined using Flask-SQLAlchemy
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     #this is the primary key column, an integer that uniquely identifies each user
@@ -220,6 +221,7 @@ db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
 #this sets up an event listener that calls the after_commit method of SearchableMixin after a database commit
 
 class Post(SearchableMixin, db.Model):
+    __tablename__ = "post"
     #searchablemixin is added as a base class to enable full-text search capabilities for the Post model
     __searchable__ = ['body'] #this indicates that the body field of the Post model should be indexed for full-text search
     #this represents the blog posts stored in the database 
