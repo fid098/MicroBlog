@@ -49,6 +49,21 @@
           <li class="nav-item">
               <a class="nav-link" aria-current="page" href="{{ url_for('auth.logout') }}">Logout</a>
             </li>
+          <li class="nav-item">
+            <a class="nav-link" aria-current="page" href="{{ url_for('main.messages')}}">{{ _('Messages') }}
+              {% set unread_message_count = current_user.unread_message_count() %}
+              <!--this sets a variable with the count of unread messages for the current user-->
+              <span id="message_count" class="badge text-bg-danger"
+              {% if unread_message_count %}
+              style="visibility: visible"
+              {% else %}
+              style="visibility: hidden"
+              {% endif %}>
+                {{ unread_message_count }}
+              </span>
+            <!--this adds the badge with the count-->
+            </a>
+          </li>
           <!--link to the profile page of the current user-->
           {% endif %}
         </ul>
@@ -85,7 +100,6 @@
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous">
-
     </script>
     <!--this is the JS for the bootstrap, it enables the navbar toggle, the dropdowns and the modals -->
     {{ moment.include_moment() }}
@@ -104,8 +118,8 @@
           // we use innerHTML to insert HTML content (the loading spinner) into the element
           "<img src=\"{{ url_for('static', filename='loading.gif') }}\">"; // shows a loading spinner while the translation is in progress
           //fetch is used to make an async HTTP request to the server
-          const response = await fetch('/translate', 
-          // this sends a POST request to the /translate endpoint(route)
+          const response = await fetch('{{ url_for("main.translate_text") }}', 
+          // this sends a POST request to the /translate endpoint(route) using the blueprint-prefixed endpoint
           {
             method: 'POST', // specifies that the request method is POST
             headers: {'Content-Type': 'application/json; charset=utf-8'}, // sets the content type to JSON
@@ -119,6 +133,7 @@
           document.getElementById(destElem).innerText = data.text;
           // this gets the translated text from the response and updates the innerText of the destination element
         }
+        
         function initialize_popovers() {
           //this function initializes all popovers on the page
           const popups = document.getElementsByClassName('user_popup');
@@ -146,13 +161,14 @@
               //adds the d-inline class to the popover for inline display
             });
             popups[i].addEventListener('show.bs.popover', async (ev) => {
+              //this adds an event listener for when the popover is about to be shown
               if (ev.target.popupLoaded) {
                 return; //stops the program from crashing/sending the same request
               }
               //the show event for the popover components recieves an ev argument, with the event object. 
               //the element that triggered the event can be obtained with ev.target.
               const response = await fetch('/user/' + ev.target.innerText.trim() + '/popup');
-              //this sends a post request to the user popup, .innerText.trim() returns the trimmed(no newlines and whitepace) text contents of the node
+              //this sends a GET request to the user popup, .innerText.trim() returns the trimmed(no newlines and whitepace) text contents of the node
               const data = await response.text();
               //once i have the response i store the text in data variable
               const popover = bootstrap.Popover.getInstance(ev.target);
@@ -160,7 +176,7 @@
               if (popover && data) {
                 //if i have the data and component
                 ev.target.popupLoaded = true;
-                //set popuploaded to true so i dont resend the same request.
+                //set popupLoaded to true so i dont resend the same request.
                 popover.setContent({'.popover-body': data});
                 //this sets the contents of the data text onto the popover
                 flask_moment_render_all();
@@ -169,8 +185,58 @@
             });
           }
         }
-        document.addEventListener('DOMContentLoaded', initialize_popovers);
-          //this event listener waits for the DOM content to be fully loaded before initializing popovers
+        
+        function set_message_count(n) {
+          //this function updates the message count badge
+          const count = document.getElementById('message_count');
+          //gets the message count element by its ID
+          count.innerText = n;
+          //sets the text content to the count value
+          count.style.visibility = n ? 'visible' : 'hidden';
+          //shows the badge if count is greater than 0, hides it if count is 0
+        }
+        // this changes the count visibility in real time if zero or non zero
+        
+        "{% if current_user.is_authenticated %}"
+        function initialize_notifications() {
+          //this function polls the server for new notifications every 10 seconds
+          let since = 0;
+          //tracks the timestamp of the last notification received
+          setInterval(async () => {
+            //setInterval runs the function every 10 seconds (10000ms)
+            const response = await fetch('{{ url_for("main.notifications") }}?since=' + since);
+            //fetches new notifications from the server, only getting notifications newer than 'since' timestamp
+            const notifications = await response.json();
+            //parses the response as JSON to get the notifications array
+
+            for (let i = 0; i < notifications.length; i++) {
+              //loops through each notification received
+              if (notifications[i].name === 'unread_message_count') {
+                //checks if the notification is about unread message count
+                set_message_count(notifications[i].data);
+                //updates the message count badge with the new count
+              }
+              since = notifications[i].timestamp;
+              //updates the 'since' timestamp to the latest notification timestamp
+            }
+          }, 10000);
+          //10000 milliseconds = 10 seconds between each poll
+        }
+        "{% endif %}"
+
+        document.addEventListener('DOMContentLoaded', () => {
+          //this event listener waits for the DOM to be fully loaded before running the code
+          initialize_popovers();
+          //initializes all popovers on the page
+          "{% if current_user.is_authenticated %}"
+          initialize_notifications();
+          //starts the notification polling if the user is logged in
+          "{% endif %}"
+        });
     </script>
+    <!--this closing script tag was missing in the original code-->
+
+    {% block scripts %}{% endblock %}
+    <!--this block allows child templates to add their own scripts-->
   </body>
 </html>
