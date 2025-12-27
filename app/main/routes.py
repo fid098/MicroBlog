@@ -291,3 +291,15 @@ def notifications():
 #this function returns a payload with a list of notifications for the user
 #to not get repeated notis, the user has the option to only request since a given time
 #the since option can be included in the query string of the request URL
+
+@bp.route('/export_posts')
+@login_required
+def export_posts():
+    if current_user.get_task_in_progress('export_posts'):
+        #checks for existing tasks
+        flash(_('An export task is currently in progress'))
+    else:
+        #if no task is running, start a new task
+        current_user.launch_task('export_posts', _('Exporting posts...'))
+        db.session.commit()
+    return redirect(url_for('main.user', username=current_user.username))

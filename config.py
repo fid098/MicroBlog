@@ -30,14 +30,15 @@ class Config:
     #it checks for an environment variable named LOG_TO_STDOUT
 
     #first we add the email server details to the config file 
-    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', '').strip()
     #email server credentials by default are not used but can be provided if needed. 
-    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
     #mail server and port are a boolean flag to enable encrypted connections
     #the email server port can be given in an environment variable but if not set, the standard port 25 is used 
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_USE_TLS = True
+    MAIL_USE_SSL = False
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME').strip()
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD').strip()
     #optional username and password
     ADMINS = ['fidel.ehirim1@gmail.com'] #list of email addresses that will recieve error reports
     #when the app is deployed on a production server, we can configure Flask to email me after an error with the stack trace of the error 
@@ -59,4 +60,7 @@ class Config:
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or None
     #this configuration variable holds the URL for the Elasticsearch server
     #it is sourced from an environment variable named ELASTICSEARCH_URL
+
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
+    #this reads the redis url from the environment variable or uses the default
 

@@ -20,6 +20,8 @@ from app.search import add_to_index, remove_from_index, query_index
 from flask import current_app
 import json
 from time import time 
+import redis 
+import rq
 
 
 
@@ -184,6 +186,25 @@ class User(UserMixin, db.Model):
         n = Notification(name=name, payload_json=json.dumps(data), user=self)
         db.session.add(n)
         return n
+    tasks: so.WriteOnlyMapped['Task'] = so.relationship(back_populates='user')
+    #add a relationship between the user and the task
+    def launch_task(self, name, description, *args, **kwargs):
+        #takes the name of the task function, the description and additional arguments to pass to the task 
+        rq_job = current_app.task_queue.enqueue(f'app.tasks.{name}', self.id, *args, **kwargs)
+        #adds the job to the redis queue created in __init__, taking the name(path), the user id and other arguments
+        task = Task(id=rq_job.get_id(), name=name, description=description, user=self)
+        #then we create a task database record, using the RQ's job id
+        db.session.add(task)
+        #then we add that task to the database session
+        return task #return the task object
+    def get_tasks_in_progress(self):
+        query = self.tasks.select().where(Task.complete == False)
+        #we query all tasks for this user and filter to only incomplete tasks and returns them as a list
+        return db.session.scalars(query)
+    def get_task_in_progress(self, name):
+        query = self.tasks.select().where(Task.name == name, Task.complete == False)
+        #finds a specific task by name if it is still in progress and returns that single task or None
+        return db.session.scalar(query)
 
 class SearchableMixin(object):
     @classmethod #class method decorator that indicates the method is bound to the class and not the instance
@@ -301,3 +322,30 @@ class Notification(db.Model):
     def get_data(self):
         return json.loads(str(self.payload_json))
     #getter function to get the json string file
+
+class Task(db.Model):
+    #add a task model with columns 
+    id: so.Mapped[str] = so.mapped_column(sa.String(36), primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
+    description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id))
+    complete: so.Mapped[bool] = so.mapped_column(default=False)
+
+    user: so.Mapped[User] = so.relationship(back_populates='tasks')
+    #relationship back to user
+
+    def get_rq_job(self):
+        try:
+            rq_job = rq.job.Job.fetch(self.id, connection=current_app.redis)
+            #job object that loads the RQ job from redis, uses the tasks id and uses app's redic connection
+        except (redis.exceptions.RedisError, rq.exceptions.NoSuchJobError):
+            #if redis is down, or job is expired, returns none
+            return None
+        return rq_job
+        #other wise return the job object
+
+    def get_progress(self):
+        job = self.get_rq_job()
+        #we get the result from the above function, if job is None then job expired, then must be complete so we return 100
+        return job.meta.get('progress', 0) if job is not None else 100
+        #otherwise return the progress from job.meta 

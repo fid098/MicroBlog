@@ -13,12 +13,21 @@ def send_async_email(app, msg):
 #now the email sending function will run in the thread. 
 #it still requires the app.app_context() becasue the thread is outside the main Flask request 
 
-
-def send_email(subject, sender, recipients, text_body, html_body):
+#we add a new parameter for file attachments and a parameter to control async vs sync sending(which we set to async)
+def send_email(subject, sender, recipients, text_body, html_body, attachments=None, sync=False):
     msg = Message(subject, sender=sender, recipients=recipients)
     msg.body = text_body
     msg.html = html_body
-    Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
-    #creates a new thread, calls send_async_email in the background
-    #.start() begins execution without blocking the request 
+    if attachments:
+        #if an attachement(post) is provided 
+        for attachment in attachments:
+            #we attach each post to the email message
+            msg.attach(*attachment) #*attachment expands the tuple into arguments
+    if sync:
+        mail.send(msg)
+        #if synchronous sending is requested, send the message immediately
+    else:
+        Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
+        #creates a new thread, calls send_async_email in the background
+        #.start() begins execution without blocking the request 
 

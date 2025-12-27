@@ -81,6 +81,23 @@
               </div>
             </form>
         {% endif %}
+        
+        {% if current_user.is_authenticated %}
+        <!--only for logged in users-->
+        {% with tasks = current_user.get_tasks_in_progress() %}
+        <!--we get active tasks-->
+        {% if tasks %} <!--if tasks exist-->
+            {% for task in tasks %} <!--loop through-->
+            <div class="alert alert-success" role="alert">
+                {{ task.description }} <!--show the task description from the route-->
+                <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>% <!--show the progress percentage from the tasks.py-->
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% endif %}
+        <!--this shows the task progress alert for authenticated users-->
+        
         {% with messages = get_flashed_messages() %}
         <!-- using "with" construct to assign the result of calling get_flashed_messages() to a messages variable-->
         {% if messages %}
@@ -93,6 +110,7 @@
         {% endif %}
         {% endwith %}
         <!-- this block is used to display flashed messages to the user -->
+        
         {% block content %}{% endblock %}
         <!-- the block named content will be replaced by child templates -->
       </div>
@@ -197,6 +215,16 @@
         }
         // this changes the count visibility in real time if zero or non zero
         
+        function set_task_progress(task_id, progress) {
+            //this function updates the task progress percentage
+            const progressElement = document.getElementById(task_id + '-progress');
+            //gets the progress element by combining task_id with '-progress'
+            if (progressElement) {
+                progressElement.innerText = progress;
+                //updates the text content with the new progress value
+            }
+        }
+        
         "{% if current_user.is_authenticated %}"
         function initialize_notifications() {
           //this function polls the server for new notifications every 10 seconds
@@ -211,10 +239,18 @@
 
             for (let i = 0; i < notifications.length; i++) {
               //loops through each notification received
-              if (notifications[i].name === 'unread_message_count') {
-                //checks if the notification is about unread message count
-                set_message_count(notifications[i].data);
-                //updates the message count badge with the new count
+              switch (notifications[i].name) {
+                //checks the notification type
+                case 'unread_message_count':
+                  //if it's an unread message count notification
+                  set_message_count(notifications[i].data);
+                  //updates the message count badge with the new count
+                  break;
+                case 'task_progress':
+                  //if it's a task progress notification
+                  set_task_progress(notifications[i].data.task_id, notifications[i].data.progress);
+                  //updates the task progress percentage with task_id and progress from the notification data
+                  break;
               }
               since = notifications[i].timestamp;
               //updates the 'since' timestamp to the latest notification timestamp

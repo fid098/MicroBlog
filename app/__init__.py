@@ -15,6 +15,8 @@ from flask_babel import Babel, lazy_gettext as _l
 #Flask-Babel is an extension that adds i18n and l10n support to Flask applications, making it easier to translate the app into different languages and format dates, times, and numbers according to the user's locale.
 import os 
 from elasticsearch import Elasticsearch
+from redis import Redis
+import rq
 
 def get_locale():
     return request.accept_languages.best_match(current_app.config['LANGUAGES'])
@@ -50,8 +52,17 @@ def create_app(config_class=Config):
     babel = Babel(app, locale_selector=get_locale) #the local_selector is set to the function get_locale that is invoked for each request. 
     #didnt continue implementation but will go back to continue if needed 
 
+    app.redis = Redis.from_url(app.config['REDIS_URL']) #this creates a redis connection that is attacked to the app object for easy access
+    app.task_queue = rq.Queue('microblog-tasks', connection=app.redis)
+    #we create a task queue using the redis connection we just made 
+    #we that task queue is accessible via current_app.task_queue anywhere
+
 
     es_url = os.environ.get('ELASTICSEARCH_URL') #getting the elasticsearch url from environment variable
+    if es_url:
+        es_url = es_url.strip()
+    else:
+        None 
     es_user = os.environ.get('ELASTICSEARCH_USER') #getting the elasticsearch user from environment variable
     es_password = os.environ.get('ELASTICSEARCH_PASSWORD') #getting the elasticsearch password from environment variable
 
