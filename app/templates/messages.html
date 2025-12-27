@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ _('Messages') }}</h1>
+
+  {% if messages %}
+  <!--if there are any messages-->
+    <ul class="list-group">
+      {% for message in messages %}
+      <!--loop through the messages-->
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong>
+                <a href="{{ url_for('main.user', username=message.author.username) }}">
+                  {{ message.author.username }}
+                  <!--for each message display the username-->
+                </a>
+              </strong>
+              <div class="mt-2">{{ message.body }}</div>
+              <!--then display the body-->
+            </div>
+            <small class="text-muted">
+              {{ moment(message.timestamp).fromNow() }}
+              <!--then the timestamp-->
+            </small>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">{{ _('No messages.') }}</p>
+    <!--if no messages print no messages-->
+  {% endif %}
+
+  <nav class="mt-3" aria-label="...">
+    <ul class="pagination">
+      <li class="page-item {% if not prev_url %}disabled{% endif %}">
+        <a class="page-link" href="{{ prev_url or '#' }}">&larr; {{ _('Newer') }}</a>
+      </li>
+      <li class="page-item {% if not next_url %}disabled{% endif %}">
+        <a class="page-link" href="{{ next_url or '#' }}">{{ _('Older') }} &rarr;</a>
+      </li>
+    </ul>
+  </nav>
+{% endblock %}
