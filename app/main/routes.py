@@ -72,7 +72,7 @@ def index():
         None
     return render_template('index.html', title=_('Home'), form=form,
                            posts=posts.items, next_url=next_url,
-                           prev_url=prev_url) #the template now recieves the form object as an additional argument, so it can render it to the page 
+                           prev_url=prev_url, delete_form=EmptyForm()) #the template now recieves the form object as an additional argument, so it can render it to the page 
 #this converts a template file (index.html) into a complete HTML page
 #the render_template() function takes the name of the template file as its first argument
 #additional arguments are key-value pairs that are passed to the template engine
@@ -160,7 +160,7 @@ def explore():
         prev_url = url_for('main.explore', page=posts.prev_num)
     else:
         None
-    return render_template('index.html', title=_('Explore'), next_url=next_url, prev_url=prev_url, posts=posts.items)
+    return render_template('index.html', title=_('Explore'), next_url=next_url, prev_url=prev_url, posts=posts.items, delete_form=EmptyForm())
     #i reuse the index template but do not include the form argument since i dont want the form to write blog posts
 
 
@@ -203,7 +203,7 @@ def user(username):
     form = EmptyForm()
     return render_template('user.html',form=form,
                            posts=posts.items, next_url=next_url,
-                           prev_url=prev_url, user=user)
+                           prev_url=prev_url, user=user, delete_form=form)
 
 @bp.route('/search')
 @login_required
@@ -223,7 +223,7 @@ def search():
     prev_url = url_for('main.search', q=g.search_form.q.data, page=page - 1)
     #this constructs the URL for the previous page of results
     return render_template('search.html', title=_('Search'), posts=posts,
-                           next_url=next_url, prev_url=prev_url)
+                           next_url=next_url, prev_url=prev_url, delete_form=EmptyForm())
     #this renders the search.html template with the search results and pagination links
 
 @bp.route('/user/<username>/popup')
@@ -303,3 +303,21 @@ def export_posts():
         current_user.launch_task('export_posts', _('Exporting posts...'))
         db.session.commit()
     return redirect(url_for('main.user', username=current_user.username))
+
+@bp.route('/delete_post/<int:id>', methods=['POST'])
+@login_required
+def delete_post(id):
+    form = EmptyForm()
+    if not form.validate_on_submit():
+        return redirect(request.referrer or url_for('main.index'))
+    post = db.session.get(Post, id)
+    if post is None:
+        flash(_('Post not found.'))
+        return redirect(request.referrer or url_for('main.index'))
+    if post.author != current_user:
+        flash(_('You cannot delete this post.'))
+        return redirect(request.referrer or url_for('main.index'))
+    db.session.delete(post)
+    db.session.commit()
+    flash(_('Your post has been deleted.'))
+    return redirect(request.referrer or url_for('main.index'))

@@ -31,6 +31,14 @@
             {% endif %}
             <!--this calls the javascript function translate() with the appropriate arguments-->
             <!--if the post has a language set and it is different from the current locale, show a translate link-->
+            {% if current_user.is_authenticated and post.author == current_user %}
+            <form action="{{ url_for('main.delete_post', id=post.id) }}" method="post" style="display:inline; margin-left: 10px;">
+                {{ delete_form.hidden_tag() }}
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    &times; {{ _('Delete') }}
+                </button>
+            </form>
+            {% endif %}
         </td>
     </tr>
 </table>
