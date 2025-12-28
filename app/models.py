@@ -22,7 +22,9 @@ import json
 from time import time 
 import redis 
 import rq
-
+from flask import url_for
+from datetime import timedelta
+import secrets
 
 
 
@@ -42,8 +44,38 @@ followers = sa.Table(
               primary_key=True)
 )
 
+
+class PaginatedAPIMixin(object):
+    @staticmethod
+    def to_collection_dict(query, page, per_page, endpoint, **kwargs): #it takes an sql query, a page number and a page size
+        #the to_collection_dict method produces a dictionary with the user collection(collection of user data) representation
+        #including the items, _meta and _links sections
+        resources = db.paginate(query, page=page, per_page=per_page, error_out=False)
+        #this obtains a page worth of items
+        data = {
+          'items': [item.to_dict() for item in resources.items],
+            '_meta': {
+                'page': page,
+                'per_page': per_page,
+                'total_pages': resources.pages,
+                'total_items': resources.total
+            },
+            '_links': {
+                #includes a self reference and links to the next and previous pages
+                #couldve been made more complicated by using url_for('api.get_users',..) for self
+                'self': url_for(endpoint, page=page, per_page=per_page,
+                                **kwargs), #takes the endpoint argument for the view function that needs to be used in the url_for calls
+                                #also captures any additional route arguments in kwargs
+                'next': url_for(endpoint, page=page + 1, per_page=per_page,
+                                **kwargs) if resources.has_next else None,
+                'prev': url_for(endpoint, page=page - 1, per_page=per_page,
+                                **kwargs) if resources.has_prev else None
+            }
+        }
+        return data
+
 #this defines the initial database structure/schema for the application
-class User(UserMixin, db.Model):
+class User(PaginatedAPIMixin, UserMixin, db.Model):
     __tablename__ = "user"
     #this represents users stored in the database, the class inherits from db.Model which is the base class for all models defined using Flask-SQLAlchemy
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -205,6 +237,72 @@ class User(UserMixin, db.Model):
         query = self.tasks.select().where(Task.name == name, Task.complete == False)
         #finds a specific task by name if it is still in progress and returns that single task or None
         return db.session.scalar(query)
+    def posts_count(self):
+        query = sa.select(sa.func.count()).select_from(
+            self.posts.select().subquery())
+        return db.session.scalar(query)
+
+    def to_dict(self, include_email=False):
+        #to_dict() converts the user object to a python representaion then to a JSON
+        #the current user's dictionary is generated and returned
+        data = {
+            'id': self.id,
+            'username': self.username,
+            'last_seen': self.last_seen.replace(
+                tzinfo=timezone.utc).isoformat() if self.last_seen else None, #we use the ISO 8601 format for the date and time fields
+            'about_me': self.about_me,
+            'post_count': self.posts_count(), #use helper function above to calculate
+            'follower_count': self.followers_count(), #use helper function above to calculate
+            'following_count': self.following_count(), #use helper function above to calculate
+            '_links': {
+                #for the hypermedia links, url_for generates urls pointing to the viewfunctions in api/users.py and pass the id arguments
+                'self': url_for('api.get_user', id=self.id),
+                'followers': url_for('api.get_followers', id=self.id),
+                'following': url_for('api.get_following', id=self.id),
+                'avatar': self.avatar(128)
+            }
+        }
+        if include_email:
+            #in the case of the email being included(user requesting their own data)
+            #add a new email key and value
+            data['email'] = self.email
+        return data
+    def from_dict(self, data, new_user=False):
+        for field in ['username', 'email', 'about_me']:
+            #impoer the fields which the user can set which are these ones
+            if field in data:
+                #for each field, check if there is a value provided in the data argument
+                setattr(self, field, data[field])
+                #if there is, we set the new value in the corresponding attribute for the object
+        if new_user and 'password' in data:
+            #if this is a registration and a password is included
+            self.set_password(data['password'])
+            #use the set_password method to create a password hash
+    token: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32), index=True, unique=True)
+    #add a token attribute and make it unique and indexed since its going to be used to search the database
+    token_expiration: so.Mapped[Optional[datetime]] = so.mapped_column(sa.DateTime)
+    #holds the date and time at which the token expires
+    def get_token(self, expires_in=3600):
+        #returns the token for the user
+        now = datetime.now(timezone.utc)
+        #before creation, it checks if the currently assigned token has at least a minute left before expiration, in that case the existing token is returned
+        if self.token and self.token_expiration and self.token_expiration.replace(tzinfo=timezone.utc) > now + timedelta(seconds=60):
+            return self.token
+        self.token = secrets.token_hex(16)
+        #this generates the token
+        self.token_expiration = now + timedelta(seconds=expires_in)
+        db.session.add(self)
+        return self.token
+    def revoke_token(self):
+        self.token_expiration = datetime.now(timezone.utc) - timedelta(seconds=1)
+        #this makes the token invalid by setting the expiration date to one second before the current time
+    @staticmethod
+    def check_token(token):
+        #takes a token input and returns the user the token belongs to 
+        user = db.session.scalar(sa.select(User).where(User.token == token))
+        if user is None or user.token_expiration.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            return None #if invalid or expired
+        return user
 
 class SearchableMixin(object):
     @classmethod #class method decorator that indicates the method is bound to the class and not the instance
