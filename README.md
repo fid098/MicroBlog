@@ -10,70 +10,90 @@ This project demonstrates real-world backend and frontend concepts including RES
 
 ### 👤 User Management
 
-- User registration and login
-- Secure password hashing
-- User profiles with bio and avatar (Gravatar)
-- Follow / unfollow users
-- User authentication via session and API tokens
+- User registration and secure authentication
+- Password hashing with Werkzeug
+- Dynamic user profiles with Gravatar avatars
+- Follow/unfollow system with relationship tracking
+- Session-based and token-based authentication
+- Password reset via email with JWT tokens
 
-### 📝 Posts
+### 📝 Posts and Timeline
 
-- Create, edit, delete posts
-- Followed users timeline
-- Export posts using **Redis + RQ background jobs**
-- Post counts and user statistics
+- Create, edit, and delete posts
+- Personalized timeline showing followed users' posts
+- Post pagination and infinite scroll
+- Language detection for posts
+- Export posts to JSON via background jobs
 
-### 🔐 API Integration
+### 🔐 RESTful API
 
-- RESTful API endpoints
-- Token-based authentication
-- Pagination and hypermedia links
-- JSON responses with proper error handling
+- Complete REST API with hypermedia links (HATEOAS)
+- Token-based authentication with expiration
+- Pagination with metadata
+- User, posts, and followers endpoints
+- Proper HTTP status codes and error handling
+- API rate limiting and security
 
-### 🔍 Search
+### 🔍 Full-Text Search
 
-- Full-text search for posts
-- Search index integration
-- Ranked search results
+- Elasticsearch integration for advanced search
+- Real-time search indexing
+- Ranked search results with relevance scoring
+- Automatic index synchronization
+- Fallback handling when Elasticsearch unavailable
 
 ### 💬 Private Messaging
 
-- One-to-one private messages
-- Unread message counters
-- Message timestamps
+- One-to-one private messaging system
+- Real-time unread message counters
+- Message notifications via AJAX
+- Timestamp tracking for read/unread status
 
 ### 🌍 Internationalization (i18n)
 
-- Multiple language support
-- Automatic language detection
-- AJAX-based language switching
-- International date & time formatting
+- Multi-language support (English, Spanish, Turkish, French, German, Chinese)
+- Automatic locale detection from browser
+- AJAX-based language switching without page reload
+- Microsoft Translator API integration
+- Localized date/time formatting with Flask-Moment
+- Translatable UI strings with Flask-Babel
 
-### 📧 Email Support
+### 📧 Email Integration
 
-- Password reset emails
-- Notification emails
-- Configurable SMTP support
+- Asynchronous email sending via threading
+- Password reset emails with secure tokens
+- Post export delivery via email attachments
+- Configurable SMTP support (Gmail, custom servers)
+- HTML and plain-text email templates
 
 ### ⚙️ Background Tasks (Redis + RQ)
 
-- Asynchronous task processing
-- Export posts in the background
-- Task progress tracking
-- Persistent task records
+- Asynchronous task processing with Redis Queue
+- Post export to JSON with progress tracking
+- Task status monitoring and notifications
+- Persistent task records in database
+- Worker process management
+- Real-time progress updates via AJAX
 
-### 🐳 Docker Integration
+### 🐳 Docker & Deployment
 
-- Dockerized application
-- Easy local and production deployment
-- Consistent runtime environment
+- Multi-container Docker setup
+- Dockerized Flask application
+- Redis and Elasticsearch containers
+- Gunicorn WSGI server for production
+- Database migration automation
+- Environment-based configuration
+- Health checks and restart policies
 
 ### 🎨 Frontend Enhancements
 
-- AJAX interactions
-- Popup notifications
-- Responsive UI
-- Dynamic updates without page reloads
+- Responsive Bootstrap UI
+- AJAX for dynamic content loading
+- Real-time notifications system
+- Live search functionality
+- Popup messages and alerts
+- Moment.js for relative timestamps
+- No-JavaScript fallback support
 
 ---
 
@@ -81,37 +101,49 @@ This project demonstrates real-world backend and frontend concepts including RES
 
 **Backend**
 
-- Python 3
-- Flask
-- Flask-SQLAlchemy
-- Flask-Login
-- Flask-HTTPAuth
-- Flask-Migrate
-- Redis + RQ
+- Python 3.14 - Core language
+- Flask 3.x - Web framework
+- Flask-SQLAlchemy - ORM and database management
+- Flask-Login - User session management
+- Flask-HTTPAuth - API authentication
+- Flask-Migrate - Database migrations (Alembic)
+- Flask-Mail - Email functionality
+- Flask-Babel - Internationalization
+- Flask-Moment - Timestamp localization
+- Redis - In-memory data store and message broker
+- RQ (Redis Queue) - Background job processing
+- PyJWT - JSON Web Token implementation
 
 **Frontend**
 
-- Jinja2 templates
-- JavaScript (AJAX)
-- Bootstrap
+- Jinja2 - Template engine
+- Bootstrap 5 - CSS framework
+- JavaScript (Vanilla) - Client-side interactions
+- AJAX - Asynchronous requests
 
 **Database**
 
-- SQLite (development)
-- Easily adaptable to PostgreSQL/MySQL
+- SQLite - Development database
+- PostgreSQL - Production database (optional)
+- Elasticsearch 8.x - Full-text search engine
 
-**Other**
+**DevOps**
 
-- Docker
-- JWT
-- Elasticsearch-style search integration
-- SMTP email services
+- Docker - Containerization
+- Gunicorn - Production WSGI server
+- Git - Version control
 
 ---
 
 ---
 
 ## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- Docker Desktop (for Redis, Elasticsearch)
+- Git
 
 ### 1️⃣ Clone the Repository
 
@@ -124,8 +156,13 @@ cd microblog
 
 ### Create virtual Environment
 
+windows:
 python -m venv venv
-source venv/bin/activate # Windows: venv\Scripts\activate
+venv\Scripts\activate
+
+Linux/MacOs/WSL:
+python3 -m venv venv
+source venv/bin/activate
 
 ```
 ### Install requirements
@@ -138,8 +175,29 @@ pip install -r requirements.txt
 ## Environment Variables
 
 Create a `.flaskenv` file in the project root:
-setx FLASK_APP=microblog.py
-setx FLASK_ENV=developmentl
+sSECRET_KEY=your-secret-key-here
+FLASK_APP=microblog.py
+FLASK_DEBUG=1
+
+#Database (SQLite by default)
+DATABASE_URL=sqlite:///app.db
+
+#Redis
+REDIS_URL=redis://localhost:6379
+
+#Email (Gmail example)
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+
+#Microsoft Translator (optional)
+MS_TRANSLATOR_KEY=your-translator-key
+MS_TRANSLATOR_REGION=ukwest
+
+#Elasticsearch (optional)
+ELASTICSEARCH_URL=http://localhost:9200
 
 ```
 ### Database Setup
@@ -183,7 +241,19 @@ docker run -d --name elasticsearch \
 
 ```
 
-## Elasticsearch Indexing
+### Docker Deployment
+
+### Elasticsearch Indexing
+
+#Build the image
+docker build -t microblog:latest .
+
+#Run the container
+docker run -d -p 5000:5000 \
+ -e DATABASE_URL=sqlite:///app.db \
+ -e REDIS_URL=redis://redis:6379 \
+ --name microblog \
+ microblog:latest
 
 Posts are automatically indexed when created or updated.
 If elasticsearch was unavailable, reindex manually:
@@ -203,24 +273,36 @@ http --auth username:password POST http://localhost:5000/api/tokens
 
 ## Export Posts (Background Task)
 
--Triggered from the UI or API
--Runs asynchronously via Redis
--Progress tracked per user
--Exported data delivered once complete
+The export posts feature demonstrates asynchronous processing:
+
+- User clicks "Export Posts"
+- Task is queued in Redis
+- RQ worker picks up the task
+- Posts are exported to JSON
+- Progress updates sent via notifications
+- Email sent with JSON attachment
+- Task marked as complete
+
+Implementation:
+
+- app/tasks.py - Task definitions
+- app/models.py - Task and notification models
+- Redis Queue for job management
+- AJAX polling for progress updates
 
 ## Internationalization
 
--Automatic locale detection
--Language switching via AJAX
--Localized timestamps
--Translatable UI text
+- Automatic locale detection
+- Language switching via AJAX
+- Localized timestamps
+- Translatable UI text
 
 ## Learning Highlights
 
--REST API design
--Secure authentication
--Background job queues
--Database modeling
--Asynchronous tasks
--Internationalization
--Dockerized deployment
+- REST API design
+- Secure authentication
+- Background job queues
+- Database modeling
+- Asynchronous tasks
+- Internationalization
+- Dockerized deployment

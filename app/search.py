@@ -16,7 +16,10 @@ def remove_from_index(index, model):
     #this function removes a model instance from the specified Elasticsearch index
     if not current_app.elasticsearch:
         return
-    current_app.elasticsearch.delete(index=index, id=model.id) #delete the document from Elasticsearch
+    try:
+        current_app.elasticsearch.delete(index=index, id=model.id)
+    except Exception as e:
+        current_app.logger.exception(f"Error removing document {model.id} from Elasticsearch: {e}") #delete the document from Elasticsearch
 
 def query_index(index, query, page, per_page):
     #this function performs a search query on the specified Elasticsearch index

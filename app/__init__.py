@@ -49,7 +49,7 @@ def create_app(config_class=Config):
     login.init_app(app) #this initializes the LoginManager with the flask app instance
     mail.init_app(app) #we create an object of the class Mail
     moment.init_app(app) #we create an object of the class Moment
-    babel = Babel(app, locale_selector=get_locale) #the local_selector is set to the function get_locale that is invoked for each request. 
+    babel.init_app(app, locale_selector=get_locale) #the local_selector is set to the function get_locale that is invoked for each request. 
     #didnt continue implementation but will go back to continue if needed 
 
     app.redis = Redis.from_url(app.config['REDIS_URL']) #this creates a redis connection that is attacked to the app object for easy access

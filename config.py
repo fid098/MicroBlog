@@ -37,8 +37,8 @@ class Config:
     #the email server port can be given in an environment variable but if not set, the standard port 25 is used 
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME').strip()
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD').strip()
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '').strip()
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '').strip() 
     #optional username and password
     ADMINS = ['fidel.ehirim1@gmail.com'] #list of email addresses that will recieve error reports
     #when the app is deployed on a production server, we can configure Flask to email me after an error with the stack trace of the error 
@@ -47,7 +47,6 @@ class Config:
     POSTS_PER_PAGE = 3
     #i add this configuration item, it determines how many itesm will be displayed per page
     #this can be changed to accomodate more posts in the future
-    POSTS_PER_PAGE = 3
 
     LANGUAGES = ['en_US', 'en_GB', 'es', 'tur', 'fr', 'de', 'zh_CN']
     #holds the available languages that the application can be translated to
