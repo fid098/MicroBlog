@@ -79,7 +79,7 @@ def update_user(id):
     if 'username' in data and data['username'] != user.username and db.session.scalar(sa.select(User).where(User.username == data['username'])):
         return bad_request('please use a different username')
     if 'email' in data and data['email'] != user.email and db.session.scalar(sa.select(User).where(User.email == data['email'])):
-        return bad_request('please user a different email address')
+        return bad_request('please use a different email address')
     #once the data is validated
     user.from_dict(data, new_user=False) #import all the data provided by the client 
     db.session.commit() #commit the change made to the database

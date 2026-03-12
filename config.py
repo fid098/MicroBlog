@@ -60,6 +60,6 @@ class Config:
     #this configuration variable holds the URL for the Elasticsearch server
     #it is sourced from an environment variable named ELASTICSEARCH_URL
 
-    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:6379'
     #this reads the redis url from the environment variable or uses the default
 

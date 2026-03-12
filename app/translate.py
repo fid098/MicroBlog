@@ -1,8 +1,8 @@
 import requests
 #this imports the requests library to make HTTP requests to the Microsoft Translator API
-from flask_babel import _ , current_app
+from flask_babel import _
 #this imports the _ function from flask_babel for translations
-from app import current_app #importing the app instance from the app package
+from flask import current_app
 
 def translate(text, source_language, dest_language):
 

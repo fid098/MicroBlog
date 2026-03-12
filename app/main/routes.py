@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from flask import render_template, flash, redirect, url_for, request, g, \
-    current_app, g
+    current_app
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 import sqlalchemy as sa
@@ -64,12 +64,8 @@ def index():
     prev_url=None
     if posts.has_next:
         next_url = url_for('main.index', page=posts.next_num)
-    else:
-        None
     if posts.has_prev:
         prev_url = url_for('main.index', page=posts.prev_num)
-    else:
-        None
     return render_template('index.html', title=_('Home'), form=form,
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url, delete_form=EmptyForm()) #the template now recieves the form object as an additional argument, so it can render it to the page 
@@ -154,12 +150,8 @@ def explore():
     
     if posts.has_next:
         next_url = url_for('main.explore', page=posts.next_num)
-    else:
-        None
     if posts.has_prev:
         prev_url = url_for('main.explore', page=posts.prev_num)
-    else:
-        None
     return render_template('index.html', title=_('Explore'), next_url=next_url, prev_url=prev_url, posts=posts.items, delete_form=EmptyForm())
     #i reuse the index template but do not include the form argument since i dont want the form to write blog posts
 
@@ -193,12 +185,8 @@ def user(username):
     
     if posts.has_next:
         next_url = url_for('main.user', username=user.username, page=posts.next_num)
-    else:
-        None
     if posts.has_prev:
         prev_url = url_for('main.user', username=user.username, page=posts.prev_num)
-    else:
-        None
     #this route displays the profile page for a user with the given username
     form = EmptyForm()
     return render_template('user.html',form=form,
@@ -261,7 +249,7 @@ def messages():
     #when the user enters the message page, the message count goes to zero
     db.session.commit()
     page = request.args.get('page', 1, type=int)
-    query = current_user.messages_recieved.select().order_by(Message.timestamp.desc())
+    query = current_user.messages_received.select().order_by(Message.timestamp.desc())
     #i query the messages model for the list of messages from newer to older
     messages = db.paginate(query, page=page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
     if messages.has_next:
@@ -281,13 +269,11 @@ def notifications():
     since = request.args.get('since', 0.0, type=float)
     query = current_user.notifications.select().where(Notification.timestamp > since).order_by(Notification.timestamp.asc())
     notifications = db.session.scalars(query)
-    return [{
-        'name' : n.name,
+    return jsonify([{
+        'name': n.name,
         'data': n.get_data(),
         'timestamp': n.timestamp
-    }
-    for n in notifications 
-    ]
+    } for n in notifications])
 #this function returns a payload with a list of notifications for the user
 #to not get repeated notis, the user has the option to only request since a given time
 #the since option can be included in the query string of the request URL

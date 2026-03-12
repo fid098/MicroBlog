@@ -204,7 +204,7 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
     last_message_read_time: so.Mapped[Optional[datetime]]
     #this whill have the last time the user visited the messages page
     messages_sent: so.WriteOnlyMapped['Message'] = so.relationship(foreign_keys='Message.sender_id', back_populates='author')
-    messages_recieved: so.WriteOnlyMapped['Message'] = so.relationship(foreign_keys='Message.recipient_id', back_populates='recipient')
+    messages_received: so.WriteOnlyMapped['Message'] = so.relationship(foreign_keys='Message.recipient_id', back_populates='recipient')
     def unread_message_count(self):
         #uses the last_message_read field to return how many unread messages the user has
         last_read_time = self.last_message_read_time or datetime(1900, 1, 1)
@@ -400,7 +400,7 @@ class Message(db.Model):
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     author: so.Mapped[User] = so.relationship(foreign_keys='Message.sender_id', back_populates='messages_sent')
-    recipient: so.Mapped[User] = so.relationship(foreign_keys='Message.recipient_id', back_populates='messages_recieved')
+    recipient: so.Mapped[User] = so.relationship(foreign_keys='Message.recipient_id', back_populates='messages_received')
 
     def __repr__(self):
         return '<Message {}>'.format(self.body)
