@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 basedir = os.path.abspath(os.path.dirname(__file__))
 #this gets the absolute path of the directory where this config.py file is located
 load_dotenv(os.path.join(basedir, '.env'))
+load_dotenv(os.path.join(basedir, '.flaskenv'), override=False)
 #this loads environment variables from a .env file located in the same directory as this config.py file
 
 
@@ -35,8 +36,8 @@ class Config:
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
     #mail server and port are a boolean flag to enable encrypted connections
     #the email server port can be given in an environment variable but if not set, the standard port 25 is used 
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'False').lower() in ['true', '1']
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() in ['true', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '').strip()
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '').strip() 
     #optional username and password

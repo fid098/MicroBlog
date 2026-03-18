@@ -52,7 +52,7 @@ def create_app(config_class=Config):
     babel.init_app(app, locale_selector=get_locale) #the local_selector is set to the function get_locale that is invoked for each request. 
     #didnt continue implementation but will go back to continue if needed 
 
-    app.redis = Redis.from_url(app.config['REDIS_URL']) #this creates a redis connection that is attacked to the app object for easy access
+    app.redis = Redis.from_url(app.config['REDIS_URL']) #this creates a redis connection that is attached to the app object for easy access
     app.task_queue = rq.Queue('microblog-tasks', connection=app.redis)
     #we create a task queue using the redis connection we just made 
     #we that task queue is accessible via current_app.task_queue anywhere
