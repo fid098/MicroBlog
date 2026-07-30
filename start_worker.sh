@@ -1,27 +1,12 @@
 #!/bin/bash
-cd /mnt/c/Users/User/OneDrive/Documents/MicroBlog
+# Start an RQ worker for the microblog-tasks queue.
+# Override the broker with REDIS_URL, e.g. REDIS_URL=redis://redis:6379 ./start_worker.sh
+set -e
 
-# Use the existing venv (not venv-wsl)
-source venv/bin/activate
+cd "$(dirname "$0")"
 
 export FLASK_APP=microblog.py
+export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
 
-# Fix: Use default gateway, not DNS servers
-WINDOWS_IP=$(ip route show | grep -i default | awk '{ print $3}')
-export REDIS_URL=redis://$WINDOWS_IP:6379
-
-echo "Windows IP: $WINDOWS_IP"
-echo "Connecting to Redis at: $REDIS_URL"
-
-# Test connection first
-echo "Testing Redis connection..."
-redis-cli -h $WINDOWS_IP ping
-
-if [ $? -eq 0 ]; then
-    echo "Redis connection successful!"
-    echo "Starting RQ worker..."
-    rq worker microblog-tasks
-else
-    echo "ERROR: Cannot connect to Redis at $WINDOWS_IP:6379"
-    exit 1
-fi
+echo "Connecting to Redis at $REDIS_URL"
+exec rq worker --url "$REDIS_URL" microblog-tasks

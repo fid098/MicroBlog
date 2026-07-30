@@ -1,0 +1,77 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: microblog
+      POSTGRES_USER: microblog
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-microblog}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U microblog -d microblog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment: &app_env
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-key}
+      DATABASE_URL: postgresql://microblog:${POSTGRES_PASSWORD:-microblog}@db:5432/microblog
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      LOG_TO_STDOUT: "true"
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      ADMINS: ${ADMINS:-}
+      MS_TRANSLATOR_KEY: ${MS_TRANSLATOR_KEY:-}
+      MS_TRANSLATOR_REGION: ${MS_TRANSLATOR_REGION:-global}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    # Bypass boot.sh: the web service owns migrations, the worker just consumes.
+    entrypoint: ["rq", "worker", "--url", "redis://redis:6379", "microblog-tasks"]
+    environment: *app_env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

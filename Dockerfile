@@ -1,30 +1,27 @@
-FROM python:slim
-# from python:slim, this image is based on the official Python slim image
-# the FROM command specifies the base container image on which the new image will be built
-# the slim tag selects a container image that has only the minimal packages required to run the Python interpreter
+FROM python:3.12-slim
 
-# Install system dependencies
-# COPY command transfers files from the host machine to the container's filesystem
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-RUN pip install gunicorn pymysql cryptography
-# gunicorn is a Python WSGI HTTP Server for UNIX. It is a pre-fork worker model, which means that it forks multiple worker processes to handle requests. This makes it suitable for handling multiple requests simultaneously in a production environment.
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=microblog.py \
+    LOG_TO_STDOUT=true
 
-# Set working directory
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY app app
 COPY migrations migrations
 COPY microblog.py config.py boot.sh ./
-RUN chmod a+x boot.sh
-# RUN chmod a+x boot.sh boot.sh ensures this new boot.sh file is correctly set as an executable inside the container
+RUN chmod +x boot.sh
 
-# Set environment variables inside the container
-ENV FLASK_APP=microblog.py
+# Compile the .po catalogs into the .mo files Babel loads at runtime; the
+# compiled output is deliberately not committed to the repository.
 RUN flask translate compile
-# this compiles the translation files for the Flask application
 
-# Expose port and define entrypoint
+# Run as an unprivileged user. Logs go to stdout, so no writable paths needed.
+RUN useradd --create-home --shell /bin/bash microblog && chown -R microblog:microblog /app
+USER microblog
+
 EXPOSE 5000
-# this configures the port that this container will be using for its server.
 ENTRYPOINT ["./boot.sh"]
-# this defines the default command that should be executed when a container is started with this image.
-# this will run the boot.sh script, which typically contains commands to start the Flask application using Gunicorn.
