@@ -1,308 +1,208 @@
-# MicroBlog 🚀
+# MicroBlog
 
-A full-featured microblogging web application built with **Flask**, designed with scalability, API access, background jobs, and modern web features in mind.
+A microblogging web application built with Flask, covering session and token
+authentication, a REST API, full-text search, background job processing, and a
+containerised deployment.
 
-This project demonstrates real-world backend and frontend concepts including REST APIs, authentication, background task queues, search, internationalization, and Docker-based deployment.
+## Features
 
----
+**Users and authentication**
+- Registration and login with session-based authentication (Flask-Login)
+- Password hashing via Werkzeug
+- Password reset by email using time-limited JWTs
+- Token authentication for API clients, with expiry and revocation
+- Profile pages with Gravatar avatars and follow/unfollow
 
-## ✨ Features
+**Posts and timeline**
+- Create posts, with a personalised timeline of followed users' posts
+- Pagination throughout
+- Automatic language detection on posts (`langdetect`)
+- On-demand translation of posts via the Microsoft Translator API
+- Export a user's posts to JSON, delivered by email as a background job
 
-### 👤 User Management
+**REST API**
+- User, follower, and following endpoints under `/api`
+- Token auth via `POST /api/tokens`, revocation via `DELETE /api/tokens`
+- Paginated collections with `_meta` and `_links` (HATEOAS-style)
+- Structured JSON error responses with correct HTTP status codes
 
-- User registration and secure authentication
-- Password hashing with Werkzeug
-- Dynamic user profiles with Gravatar avatars
-- Follow/unfollow system with relationship tracking
-- Session-based and token-based authentication
-- Password reset via email with JWT tokens
+**Search**
+- Elasticsearch full-text search over post bodies
+- Index kept in sync through SQLAlchemy commit hooks
+- Degrades gracefully to no search when `ELASTICSEARCH_URL` is unset
 
-### 📝 Posts and Timeline
+**Private messaging**
+- One-to-one messages with unread counters
+- Unread counts and job progress delivered by a notification polling endpoint
 
-- Create, edit, and delete posts
-- Personalized timeline showing followed users' posts
-- Post pagination and infinite scroll
-- Language detection for posts
-- Export posts to JSON via background jobs
+**Background jobs**
+- Redis Queue (RQ) worker for asynchronous work
+- Job progress tracked in Redis job metadata and surfaced to the browser
+- Task records persisted in the database
 
-### 🔐 RESTful API
+**Internationalisation**
+- Flask-Babel with locale selected from the browser `Accept-Language` header
+- English and Spanish catalogs (`app/translations/`)
+- Localised relative timestamps via Flask-Moment
 
-- Complete REST API with hypermedia links (HATEOAS)
-- Token-based authentication with expiration
-- Pagination with metadata
-- User, posts, and followers endpoints
-- Proper HTTP status codes and error handling
-- API rate limiting and security
+**Deployment**
+- Docker image running Gunicorn as an unprivileged user
+- `docker compose` stack: app, RQ worker, PostgreSQL, Redis, Elasticsearch
+- Migrations applied automatically on container start
+- Configuration entirely via environment variables
 
-### 🔍 Full-Text Search
+## Tech stack
 
-- Elasticsearch integration for advanced search
-- Real-time search indexing
-- Ranked search results with relevance scoring
-- Automatic index synchronization
-- Fallback handling when Elasticsearch unavailable
+| Layer | Technology |
+| --- | --- |
+| Language | Python 3.12 |
+| Framework | Flask 3, Jinja2 |
+| ORM / migrations | SQLAlchemy 2, Flask-SQLAlchemy, Flask-Migrate (Alembic) |
+| Auth | Flask-Login, Flask-HTTPAuth, PyJWT |
+| Database | PostgreSQL (production), SQLite (local default) |
+| Search | Elasticsearch 8 |
+| Jobs | Redis, RQ |
+| Frontend | Bootstrap 5, vanilla JavaScript |
+| Server | Gunicorn |
+| Container | Docker, Docker Compose |
 
-### 💬 Private Messaging
+## Quick start with Docker
 
-- One-to-one private messaging system
-- Real-time unread message counters
-- Message notifications via AJAX
-- Timestamp tracking for read/unread status
-
-### 🌍 Internationalization (i18n)
-
-- Multi-language support (English, Spanish, Turkish, French, German, Chinese)
-- Automatic locale detection from browser
-- AJAX-based language switching without page reload
-- Microsoft Translator API integration
-- Localized date/time formatting with Flask-Moment
-- Translatable UI strings with Flask-Babel
-
-### 📧 Email Integration
-
-- Asynchronous email sending via threading
-- Password reset emails with secure tokens
-- Post export delivery via email attachments
-- Configurable SMTP support (Gmail, custom servers)
-- HTML and plain-text email templates
-
-### ⚙️ Background Tasks (Redis + RQ)
-
-- Asynchronous task processing with Redis Queue
-- Post export to JSON with progress tracking
-- Task status monitoring and notifications
-- Persistent task records in database
-- Worker process management
-- Real-time progress updates via AJAX
-
-### 🐳 Docker & Deployment
-
-- Multi-container Docker setup
-- Dockerized Flask application
-- Redis and Elasticsearch containers
-- Gunicorn WSGI server for production
-- Database migration automation
-- Environment-based configuration
-- Health checks and restart policies
-
-### 🎨 Frontend Enhancements
-
-- Responsive Bootstrap UI
-- AJAX for dynamic content loading
-- Real-time notifications system
-- Live search functionality
-- Popup messages and alerts
-- Moment.js for relative timestamps
-- No-JavaScript fallback support
-
----
-
-## 🛠️ Tech Stack
-
-**Backend**
-
-- Python 3.14 - Core language
-- Flask 3.x - Web framework
-- Flask-SQLAlchemy - ORM and database management
-- Flask-Login - User session management
-- Flask-HTTPAuth - API authentication
-- Flask-Migrate - Database migrations (Alembic)
-- Flask-Mail - Email functionality
-- Flask-Babel - Internationalization
-- Flask-Moment - Timestamp localization
-- Redis - In-memory data store and message broker
-- RQ (Redis Queue) - Background job processing
-- PyJWT - JSON Web Token implementation
-
-**Frontend**
-
-- Jinja2 - Template engine
-- Bootstrap 5 - CSS framework
-- JavaScript (Vanilla) - Client-side interactions
-- AJAX - Asynchronous requests
-
-**Database**
-
-- SQLite - Development database
-- PostgreSQL - Production database (optional)
-- Elasticsearch 8.x - Full-text search engine
-
-**DevOps**
-
-- Docker - Containerization
-- Gunicorn - Production WSGI server
-- Git - Version control
-
----
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.10+
-- Docker Desktop (for Redis, Elasticsearch)
-- Git
-
-### 1️⃣ Clone the Repository
+The fastest path to a running stack — no local Python required.
 
 ```bash
-git clone https://github.com/yourusername/microblog.git
+git clone https://github.com/<your-username>/microblog.git
 cd microblog
-
-
+docker compose up --build
 ```
 
-### Create virtual Environment
+The app is served at http://localhost:5000. Migrations run automatically on
+startup. Email and translation features stay inert unless you supply the
+relevant variables (see [Configuration](#configuration)).
 
-windows:
+## Local development
+
+```bash
+git clone https://github.com/<your-username>/microblog.git
+cd microblog
+
+# Windows
 python -m venv venv
 venv\Scripts\activate
 
-Linux/MacOs/WSL:
+# macOS / Linux
 python3 -m venv venv
 source venv/bin/activate
 
-```
-### Install requirements
-pip install -r requirements.txt
-
-
-
-```
-
-## Environment Variables
-
-Create a `.flaskenv` file in the project root:
-sSECRET_KEY=your-secret-key-here
-FLASK_APP=microblog.py
-FLASK_DEBUG=1
-
-#Database (SQLite by default)
-DATABASE_URL=sqlite:///app.db
-
-#Redis
-REDIS_URL=redis://localhost:6379
-
-#Email (Gmail example)
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
-
-#Microsoft Translator (optional)
-MS_TRANSLATOR_KEY=your-translator-key
-MS_TRANSLATOR_REGION=ukwest
-
-#Elasticsearch (optional)
-ELASTICSEARCH_URL=http://localhost:9200
-
-```
-### Database Setup
+pip install -r requirements-dev.txt
 flask db upgrade
-
-
+flask translate compile   # builds the .mo catalogs
+flask run
 ```
 
-### Redis and Background Tasks
+This uses a local SQLite database at `app.db`. Redis and Elasticsearch are
+optional; without them, search returns no results and background jobs cannot be
+queued, but the rest of the app works.
 
-start redis : redis-server
-start RQ worker : rq worker microblog-tasks
+To run background jobs locally, start Redis and then a worker:
 
+```bash
+docker run -d -p 6379:6379 --name redis redis:7-alpine
+./start_worker.sh
 ```
-### Docker setup
-docker-compose up --build
 
+To enable search, start Elasticsearch and set `ELASTICSEARCH_URL`:
 
-```
-
-## Running Services with Docker
-
-docker run -d --name mysql \
- -p 3306:3306 \
- -e MYSQL_RANDOM_ROOT_PASSWORD=yes \
- -e MYSQL_DATABASE=microblog \
- -e MYSQL_USER=microblog \
- -e MYSQL_PASSWORD=password \
- mysql:8.0
-
-```
- ## Elasticsearch
-
-docker run -d --name elasticsearch \
-  -p 9200:9200 \
+```bash
+docker run -d --name elasticsearch -p 9200:9200 \
   -e discovery.type=single-node \
   -e xpack.security.enabled=false \
   -e ES_JAVA_OPTS="-Xms512m -Xmx512m" \
   docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-
-
 ```
 
-### Docker Deployment
+Posts are indexed automatically on commit. To rebuild the index from scratch:
 
-### Elasticsearch Indexing
-
-#Build the image
-docker build -t microblog:latest .
-
-#Run the container
-docker run -d -p 5000:5000 \
- -e DATABASE_URL=sqlite:///app.db \
- -e REDIS_URL=redis://redis:6379 \
- --name microblog \
- microblog:latest
-
-Posts are automatically indexed when created or updated.
-If elasticsearch was unavailable, reindex manually:
-
+```bash
 flask shell
-from app.models import Post
-for post in Post.query.all():
-post.add_to_index()
-
+>>> Post.reindex()
 ```
 
-## API authentication example
-http --auth username:password POST http://localhost:5000/api/tokens
+## Configuration
 
+Create a `.env` file in the project root. Every variable is optional; defaults
+are shown where they exist.
 
+```ini
+SECRET_KEY=change-me                       # required in production
+DATABASE_URL=sqlite:///app.db              # postgresql://... in production
+REDIS_URL=redis://localhost:6379
+ELASTICSEARCH_URL=                         # unset disables search
+POSTS_PER_PAGE=25
+LOG_TO_STDOUT=false                        # true in containers
+
+MAIL_SERVER=                               # unset disables all email
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=
+MAIL_PASSWORD=
+ADMINS=you@example.com                     # error reports and From address
+
+MS_TRANSLATOR_KEY=                         # unset disables translation
+MS_TRANSLATOR_REGION=global
 ```
 
-## Export Posts (Background Task)
+`.flaskenv` holds non-secret Flask settings (`FLASK_APP`, `FLASK_DEBUG`) and is
+read after `.env` without overriding it. Neither file is committed.
 
-The export posts feature demonstrates asynchronous processing:
+## Tests
 
-- User clicks "Export Posts"
-- Task is queued in Redis
-- RQ worker picks up the task
-- Posts are exported to JSON
-- Progress updates sent via notifications
-- Email sent with JSON attachment
-- Task marked as complete
+```bash
+python tests.py
+```
 
-Implementation:
+## API usage
 
-- app/tasks.py - Task definitions
-- app/models.py - Task and notification models
-- Redis Queue for job management
-- AJAX polling for progress updates
+```bash
+# Obtain a token
+curl -u <username>:<password> -X POST http://localhost:5000/api/tokens
 
-## Internationalization
+# Call an authenticated endpoint
+curl -H "Authorization: Bearer <token>" http://localhost:5000/api/users/1
 
-- Automatic locale detection
-- Language switching via AJAX
-- Localized timestamps
-- Translatable UI text
+# Revoke the token
+curl -H "Authorization: Bearer <token>" -X DELETE http://localhost:5000/api/tokens
+```
 
-## Learning Highlights
+## Project layout
 
-- REST API design
-- Secure authentication
-- Background job queues
-- Database modeling
-- Asynchronous tasks
-- Internationalization
-- Dockerized deployment
+```
+app/
+  __init__.py      application factory, extension setup, logging
+  models.py        SQLAlchemy models, search and pagination mixins
+  main/            timeline, profiles, messaging, search routes
+  auth/            login, registration, password reset
+  api/             REST API blueprint
+  errors/          error handlers
+  tasks.py         RQ job definitions
+  search.py        Elasticsearch index helpers
+  translate.py     Microsoft Translator client
+  cli.py           `flask translate` commands
+  templates/       Jinja2 templates
+  translations/    Babel message catalogs
+migrations/        Alembic migration history
+config.py          environment-driven configuration
+microblog.py       application entry point
+```
+
+## Background job flow
+
+The post export illustrates the async pipeline end to end:
+
+1. The user requests an export; `User.launch_task` enqueues an RQ job and
+   records a `Task` row.
+2. The worker picks up `app.tasks.export_posts`, writing progress into the job's
+   metadata as it serialises posts.
+3. The browser polls the notifications endpoint and updates a progress bar.
+4. On completion the worker emails the JSON as an attachment and marks the
+   `Task` complete.
